@@ -16,15 +16,24 @@ class AnalysisOptionsReader {
     Directory dir, {
     required String pluginName,
   }) {
+    return findAndLoadMulti(dir, pluginNames: [pluginName]);
+  }
+
+  /// Finds the nearest `analysis_options.yaml` starting from [dir],
+  /// resolves `include:` directives, and extracts config for multiple plugins.
+  static AnalysisOptionsConfig? findAndLoadMulti(
+    Directory dir, {
+    required List<String> pluginNames,
+  }) {
     final file = _findAnalysisOptions(dir);
     if (file == null) return null;
 
     final merged = _loadAndMerge(file.path, dir);
     if (merged == null) return null;
 
-    return AnalysisOptionsConfig.fromYamlMap(
+    return AnalysisOptionsConfig.fromYamlMapMulti(
       merged,
-      pluginName: pluginName,
+      pluginNames: pluginNames,
     );
   }
 

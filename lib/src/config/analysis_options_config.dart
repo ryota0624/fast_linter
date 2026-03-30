@@ -55,6 +55,21 @@ class AnalysisOptionsConfig {
     YamlMap map, {
     required String pluginName,
   }) {
+    return AnalysisOptionsConfig.fromYamlMapMulti(
+      map,
+      pluginNames: [pluginName],
+    );
+  }
+
+  /// Parses config for multiple plugins from a fully-merged
+  /// analysis_options.yaml map.
+  ///
+  /// Rule overrides from all [pluginNames] are merged. If the same rule
+  /// appears in multiple plugins, later plugins take precedence.
+  factory AnalysisOptionsConfig.fromYamlMapMulti(
+    YamlMap map, {
+    required List<String> pluginNames,
+  }) {
     final ruleOverrides = <String, RuleOverride>{};
     final excludePatterns = <String>[];
 
@@ -68,14 +83,16 @@ class AnalysisOptionsConfig {
         }
       }
 
-      // Parse analyzer.plugins.<pluginName>.diagnostics
+      // Parse analyzer.plugins.<pluginName>.diagnostics for each plugin
       final plugins = analyzer['plugins'];
       if (plugins is YamlMap) {
-        final plugin = plugins[pluginName];
-        if (plugin is YamlMap) {
-          final diagnostics = plugin['diagnostics'];
-          if (diagnostics is YamlMap) {
-            _parseDiagnostics(diagnostics, ruleOverrides);
+        for (final pluginName in pluginNames) {
+          final plugin = plugins[pluginName];
+          if (plugin is YamlMap) {
+            final diagnostics = plugin['diagnostics'];
+            if (diagnostics is YamlMap) {
+              _parseDiagnostics(diagnostics, ruleOverrides);
+            }
           }
         }
       }

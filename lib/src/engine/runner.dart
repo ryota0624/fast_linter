@@ -18,7 +18,7 @@ typedef RuleFactory = List<AbstractAnalysisRule> Function();
 
 class LintRunner {
   final List<AbstractAnalysisRule> rules;
-  final RuleFactory? _ruleFactory;
+  final List<RuleFactory>? _ruleFactories;
   final AnalysisOptionsConfig? _config;
 
   /// Rule names that were skipped because they require type-aware analysis.
@@ -26,13 +26,16 @@ class LintRunner {
 
   /// Creates a runner with pre-instantiated [rules].
   ///
-  /// For parallel directory scanning, also provide [ruleFactory].
+  /// For parallel directory scanning, provide [ruleFactory] (single factory)
+  /// or [ruleFactories] (multiple factories, e.g. one per plugin).
   /// Provide [config] to apply severity overrides from analysis_options.yaml.
   LintRunner({
     required this.rules,
     RuleFactory? ruleFactory,
+    List<RuleFactory>? ruleFactories,
     AnalysisOptionsConfig? config,
-  })  : _ruleFactory = ruleFactory,
+  })  : _ruleFactories = ruleFactories ??
+            (ruleFactory != null ? [ruleFactory] : null),
         _config = config;
 
   List<LintDiagnostic> runOnFile(File file) {
@@ -70,7 +73,7 @@ class LintRunner {
       }).toList();
     }
 
-    if (_ruleFactory == null || files.length <= 1) {
+    if (_ruleFactories == null || files.length <= 1) {
       return _runSequential(files);
     }
 
@@ -91,13 +94,13 @@ class LintRunner {
   }) async {
     final numWorkers = concurrency ?? Platform.numberOfProcessors;
     final chunks = _chunkFiles(files, numWorkers);
-    final factory = _ruleFactory!;
+    final factories = _ruleFactories!;
 
     final futures = chunks.map((chunk) {
       final inputs = chunk
           .map((f) => (path: f.path, source: f.readAsStringSync()))
           .toList();
-      return Isolate.run(() => _processChunk(inputs, factory));
+      return Isolate.run(() => _processChunk(inputs, factories));
     });
 
     final chunkResults = await Future.wait(futures);
@@ -185,9 +188,9 @@ typedef _AnalysisResult = ({
 /// Isolate entry point: processes a chunk of files with freshly created rules.
 _AnalysisResult _processChunk(
   List<({String path, String source})> inputs,
-  RuleFactory factory,
+  List<RuleFactory> factories,
 ) {
-  final rules = factory();
+  final rules = [for (final f in factories) ...f()];
   final diagnostics = <LintDiagnostic>[];
   final skippedRules = <String>{};
   for (final input in inputs) {

@@ -7,6 +7,7 @@ import '../config/config.dart';
 import '../engine/diagnostic.dart';
 import '../engine/runner.dart';
 import '../lsp/server.dart';
+import '../plugin/plugin.dart';
 
 /// CLI exit codes.
 class ExitCode {
@@ -129,6 +130,123 @@ Future<void> runCli(
       '[fast_linter] Skipped ${names.length} rule(s) requiring '
       'type-aware analysis: ${names.join(', ')}',
     );
+  }
+
+  _printDiagnostics(allDiagnostics);
+
+  if (allDiagnostics.isNotEmpty) {
+    stderr.writeln('\n${allDiagnostics.length} issue(s) found.');
+    exit(ExitCode.lintFound);
+  }
+
+  if (verbose) {
+    stderr.writeln('No issues found.');
+  }
+}
+
+/// Runs the fast_linter CLI with plugin descriptors.
+///
+/// Each [PluginDescriptor] bundles a plugin name with a rule factory,
+/// enabling automatic config resolution per plugin from
+/// `analysis_options.yaml`.
+///
+/// ```dart
+/// import 'package:fast_linter/fast_linter.dart';
+/// import 'package:stailer_lint/fast_linter_plugin.dart' as stailer;
+///
+/// void main(List<String> args) {
+///   runCliWithPlugins(args, plugins: [stailer.plugin]);
+/// }
+/// ```
+Future<void> runCliWithPlugins(
+  List<String> args, {
+  required List<PluginDescriptor> plugins,
+}) async {
+  final parser = ArgParser()
+    ..addFlag('help', abbr: 'h', negatable: false, help: 'Show usage.')
+    ..addFlag('version', negatable: false, help: 'Print version.')
+    ..addFlag('lsp', negatable: false, help: 'Run as LSP server.')
+    ..addFlag('verbose',
+        abbr: 'v', negatable: false, help: 'Show verbose output.');
+
+  final ArgResults results;
+  try {
+    results = parser.parse(args);
+  } on FormatException catch (e) {
+    stderr.writeln(e.message);
+    stderr.writeln();
+    _printUsage(parser);
+    exit(ExitCode.error);
+  }
+
+  if (results.flag('help')) {
+    _printUsage(parser);
+    return;
+  }
+
+  if (results.flag('version')) {
+    print('fast_linter 0.0.1');
+    return;
+  }
+
+  final verbose = results.flag('verbose');
+  final paths = results.rest;
+
+  if (paths.isEmpty) {
+    paths.add('.');
+  }
+
+  // Resolve config from fast_lint.yaml or analysis_options.yaml
+  final targetDir = Directory(paths.first);
+  final workDir =
+      targetDir.existsSync() && FileSystemEntity.isDirectorySync(paths.first)
+          ? targetDir
+          : Directory.current;
+
+  final pluginNames = plugins.map((p) => p.name).toList();
+  final allRules = [for (final p in plugins) ...p.createRules()];
+  final factories = plugins.map((p) => p.createRules).toList();
+
+  final config = resolveConfigForPlugins(workDir, pluginNames: pluginNames);
+  final activeRules = config.filterRules(allRules);
+
+  if (verbose) {
+    stderr.writeln('${activeRules.length}/${allRules.length} rule(s) active');
+    if (config.excludePatterns.isNotEmpty) {
+      stderr.writeln('Exclude patterns: ${config.excludePatterns}');
+    }
+  }
+
+  if (results.flag('lsp')) {
+    final server = FastLintLspServer(
+      rules: activeRules,
+      pluginNames: pluginNames,
+    );
+    await server.start();
+    return;
+  }
+
+  final runner = LintRunner(
+    rules: activeRules,
+    ruleFactories: factories,
+    config: config,
+  );
+  final allDiagnostics = <LintDiagnostic>[];
+
+  for (final path in paths) {
+    final entity = FileSystemEntity.typeSync(path);
+    switch (entity) {
+      case FileSystemEntityType.file:
+        allDiagnostics.addAll(runner.runOnFile(File(path)));
+      case FileSystemEntityType.directory:
+        allDiagnostics.addAll(await runner.runOnDirectory(
+          Directory(path),
+          excludePatterns: config.excludePatterns,
+        ));
+      default:
+        stderr.writeln('Not found: $path');
+        exit(ExitCode.error);
+    }
   }
 
   _printDiagnostics(allDiagnostics);

@@ -19,7 +19,7 @@ import '../engine/runner.dart';
 /// Publishes diagnostics via `textDocument/publishDiagnostics`.
 class FastLintLspServer {
   final List<AbstractAnalysisRule> _allRules;
-  final String? _pluginName;
+  final List<String> _pluginNames;
   late LintRunner _runner;
   final Map<String, String> _openDocuments = {};
   final Set<String> _reportedSkippedRules = {};
@@ -30,8 +30,10 @@ class FastLintLspServer {
   FastLintLspServer({
     required List<AbstractAnalysisRule> rules,
     String? pluginName,
+    List<String>? pluginNames,
   })  : _allRules = rules,
-        _pluginName = pluginName {
+        _pluginNames = pluginNames ??
+            (pluginName != null ? [pluginName] : const []) {
     _runner = LintRunner(rules: _allRules);
   }
 
@@ -156,7 +158,12 @@ class FastLintLspServer {
 
   void _loadConfig(String rootUri) {
     final rootPath = Uri.parse(rootUri).toFilePath();
-    final config = resolveConfig(Directory(rootPath), pluginName: _pluginName);
+    final config = _pluginNames.isNotEmpty
+        ? resolveConfigForPlugins(
+            Directory(rootPath),
+            pluginNames: _pluginNames,
+          )
+        : resolveConfig(Directory(rootPath));
     final activeRules = config.filterRules(_allRules);
     _runner = LintRunner(rules: activeRules, config: config);
   }

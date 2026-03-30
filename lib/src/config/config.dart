@@ -89,6 +89,10 @@ AnalysisOptionsConfig resolveConfig(
   Directory dir, {
   String? pluginName,
 }) {
+  if (pluginName != null) {
+    return resolveConfigForPlugins(dir, pluginNames: [pluginName]);
+  }
+
   // Priority 1: fast_lint.yaml
   // ignore: deprecated_member_use_from_same_package
   final fastLintConfig = FastLintConfig.findAndLoad(dir);
@@ -96,11 +100,32 @@ AnalysisOptionsConfig resolveConfig(
     return fastLintConfig.toAnalysisOptionsConfig();
   }
 
-  // Priority 2: analysis_options.yaml (requires pluginName)
-  if (pluginName != null) {
-    final analysisConfig = AnalysisOptionsReader.findAndLoad(
+  // Default: all rules enabled
+  return AnalysisOptionsConfig.empty;
+}
+
+/// Resolves configuration for multiple plugins by checking sources in
+/// priority order:
+///
+/// 1. `fast_lint.yaml` (if exists) — takes full precedence
+/// 2. `analysis_options.yaml` — merges config from all [pluginNames]
+/// 3. Default — all rules enabled, no exclusions
+AnalysisOptionsConfig resolveConfigForPlugins(
+  Directory dir, {
+  required List<String> pluginNames,
+}) {
+  // Priority 1: fast_lint.yaml
+  // ignore: deprecated_member_use_from_same_package
+  final fastLintConfig = FastLintConfig.findAndLoad(dir);
+  if (fastLintConfig != null) {
+    return fastLintConfig.toAnalysisOptionsConfig();
+  }
+
+  // Priority 2: analysis_options.yaml (merge all plugin sections)
+  if (pluginNames.isNotEmpty) {
+    final analysisConfig = AnalysisOptionsReader.findAndLoadMulti(
       dir,
-      pluginName: pluginName,
+      pluginNames: pluginNames,
     );
     if (analysisConfig != null) return analysisConfig;
   }
