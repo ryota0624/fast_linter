@@ -69,6 +69,13 @@ const avoidVoidAsync = LintCode(
   severity: DiagnosticSeverity.INFO,
 );
 
+// implementation_imports
+const implementationImports = LintCode(
+  'implementation_imports',
+  "Don't import implementation files from another package.",
+  severity: DiagnosticSeverity.INFO,
+);
+
 // unawaited_futures
 const unawaitedFutures = LintCode(
   'unawaited_futures',

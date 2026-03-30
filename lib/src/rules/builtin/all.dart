@@ -3,6 +3,7 @@ import '../registry.dart';
 import 'always_declare_return_types.dart';
 import 'avoid_void_async.dart';
 import 'directives_ordering.dart';
+import 'implementation_imports.dart';
 import 'prefer_single_quotes.dart';
 import 'public_member_api_docs.dart';
 import 'unawaited_futures.dart';
@@ -17,6 +18,7 @@ List<AbstractAnalysisRule> createBuiltinRules() => [
       AlwaysDeclareReturnTypes(),
       AvoidVoidAsync(),
       DirectivesOrdering(),
+      ImplementationImports(),
       PreferSingleQuotes(),
       PublicMemberApiDocs(),
       UnawaitedFutures(),

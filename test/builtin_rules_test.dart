@@ -3,6 +3,7 @@ import 'package:fast_linter/src/rules/builtin/all.dart';
 import 'package:fast_linter/src/rules/builtin/always_declare_return_types.dart';
 import 'package:fast_linter/src/rules/builtin/avoid_void_async.dart';
 import 'package:fast_linter/src/rules/builtin/directives_ordering.dart';
+import 'package:fast_linter/src/rules/builtin/implementation_imports.dart';
 import 'package:fast_linter/src/rules/builtin/prefer_single_quotes.dart';
 import 'package:fast_linter/src/rules/builtin/public_member_api_docs.dart';
 import 'package:fast_linter/src/rules/builtin/unawaited_futures.dart';
@@ -205,6 +206,44 @@ class A {
     });
   });
 
+  group('implementation_imports', () {
+    late LintRunner runner;
+    setUp(() => runner = LintRunner(rules: [ImplementationImports()]));
+
+    test('reports importing src/ from another package', () {
+      final d = runner.runOnSource(
+        "import 'package:other_pkg/src/internal.dart';\n",
+        filePath: '/project/packages/my_pkg/lib/foo.dart',
+      );
+      expect(d, hasLength(1));
+      expect(d.first.code, 'implementation_imports');
+    });
+
+    test('allows importing src/ from own package', () {
+      final d = runner.runOnSource(
+        "import 'package:my_pkg/src/internal.dart';\n",
+        filePath: '/project/packages/my_pkg/lib/foo.dart',
+      );
+      expect(d, isEmpty);
+    });
+
+    test('allows importing public API from another package', () {
+      final d = runner.runOnSource(
+        "import 'package:other_pkg/other_pkg.dart';\n",
+        filePath: '/project/packages/my_pkg/lib/foo.dart',
+      );
+      expect(d, isEmpty);
+    });
+
+    test('allows dart: imports', () {
+      final d = runner.runOnSource(
+        "import 'dart:core';\n",
+        filePath: '/project/packages/my_pkg/lib/foo.dart',
+      );
+      expect(d, isEmpty);
+    });
+  });
+
   group('unawaited_futures', () {
     test('no-op in AST-only mode', () {
       final runner = LintRunner(rules: [UnawaitedFutures()]);
@@ -219,12 +258,13 @@ void foo() async {
   });
 
   group('createBuiltinRegistry', () {
-    test('registers all 6 rules', () {
+    test('registers all 7 rules', () {
       final registry = createBuiltinRegistry();
-      expect(registry.length, 6);
+      expect(registry.length, 7);
       expect(registry.getByName('prefer_single_quotes'), isNotNull);
       expect(registry.getByName('always_declare_return_types'), isNotNull);
       expect(registry.getByName('directives_ordering'), isNotNull);
+      expect(registry.getByName('implementation_imports'), isNotNull);
       expect(registry.getByName('public_member_api_docs'), isNotNull);
       expect(registry.getByName('avoid_void_async'), isNotNull);
       expect(registry.getByName('unawaited_futures'), isNotNull);
