@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:analyzer/analysis_rule/analysis_rule.dart';
 import 'package:dart_mcp/client.dart';
@@ -97,8 +98,9 @@ void main() {
         final text = TextContent.fromMap(
           content.first as Map<String, Object?>,
         ).text;
-        expect(text, contains('"rules"'));
-        expect(text, contains('[]'));
+        final json = jsonDecode(text) as Map<String, dynamic>;
+        expect(json['rules'], isEmpty);
+        expect(json['total'], 0);
       });
 
       test('returns rule information when rules are provided', () async {
@@ -113,8 +115,13 @@ void main() {
         final text = TextContent.fromMap(
           callResult.content.first as Map<String, Object?>,
         ).text;
-        expect(text, contains('avoid_optional_positional_parameters'));
-        expect(text, contains('"name"'));
+        final json = jsonDecode(text) as Map<String, dynamic>;
+        final rules = json['rules'] as List;
+        expect(rules, hasLength(1));
+        expect(rules[0]['name'], 'avoid_optional_positional_parameters');
+        expect(rules[0]['enabled'], true);
+        expect(rules[0]['severity'], isNull);
+        expect(json['total'], 1);
       });
     });
   });
