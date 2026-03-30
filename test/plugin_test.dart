@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:analyzer/analysis_rule/analysis_rule.dart';
 import 'package:fast_linter/fast_linter.dart';
 import 'package:fast_linter/src/config/config.dart';
+import 'package:fast_linter/src/config/analysis_options_config.dart';
 import 'package:fast_linter/src/plugin/plugin.dart';
 import 'package:test/test.dart';
 import 'package:yaml/yaml.dart';
@@ -168,27 +169,14 @@ analyzer:
       expect(config.excludePatterns, ['**/*.g.dart']);
     });
 
-    test('fast_lint.yaml takes priority', () {
-      File('${tempDir.path}/fast_lint.yaml').writeAsStringSync('''
-rules:
-  - fast_rule
-''');
-
-      File('${tempDir.path}/analysis_options.yaml').writeAsStringSync('''
-analyzer:
-  plugins:
-    plugin_a:
-      diagnostics:
-        rule_a: true
-''');
-
+    test('returns empty when no analysis_options.yaml', () {
       final config = resolveConfigForPlugins(
         tempDir,
         pluginNames: ['plugin_a'],
       );
 
-      expect(config.ruleOverrides.containsKey('fast_rule'), isTrue);
-      expect(config.ruleOverrides.containsKey('rule_a'), isFalse);
+      expect(config.ruleOverrides, isEmpty);
+      expect(config.excludePatterns, isEmpty);
     });
   });
 

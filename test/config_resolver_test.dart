@@ -15,33 +15,7 @@ void main() {
       tempDir.deleteSync(recursive: true);
     });
 
-    test('fast_lint.yaml takes priority over analysis_options.yaml', () {
-      File('${tempDir.path}/fast_lint.yaml').writeAsStringSync('''
-rules:
-  - fast_rule
-exclude:
-  - "fast_exclude/**"
-''');
-
-      File('${tempDir.path}/analysis_options.yaml').writeAsStringSync('''
-analyzer:
-  plugins:
-    test_lint:
-      diagnostics:
-        analysis_rule: true
-  exclude:
-    - "analysis_exclude/**"
-''');
-
-      final config = resolveConfig(tempDir, pluginName: 'test_lint');
-
-      // fast_lint.yaml should win
-      expect(config.ruleOverrides.containsKey('fast_rule'), isTrue);
-      expect(config.ruleOverrides.containsKey('analysis_rule'), isFalse);
-      expect(config.excludePatterns, ['fast_exclude/**']);
-    });
-
-    test('falls back to analysis_options.yaml when no fast_lint.yaml', () {
+    test('reads analysis_options.yaml', () {
       File('${tempDir.path}/analysis_options.yaml').writeAsStringSync('''
 analyzer:
   plugins:
@@ -74,7 +48,6 @@ analyzer:
         my_rule: true
 ''');
 
-      // Without pluginName, analysis_options.yaml is not read
       final config = resolveConfig(tempDir);
 
       expect(config.ruleOverrides, isEmpty);

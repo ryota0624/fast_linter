@@ -78,7 +78,7 @@ Future<void> runCli(
     paths.add('.');
   }
 
-  // Resolve config from fast_lint.yaml or analysis_options.yaml
+  // Resolve config from analysis_options.yaml
   final targetDir = Directory(paths.first);
   final workDir = targetDir.existsSync() && FileSystemEntity.isDirectorySync(paths.first)
       ? targetDir
@@ -205,7 +205,7 @@ Future<void> runCliWithPlugins(
     paths.add('.');
   }
 
-  // Resolve config from fast_lint.yaml or analysis_options.yaml
+  // Resolve config from analysis_options.yaml
   final targetDir = Directory(paths.first);
   final workDir =
       targetDir.existsSync() && FileSystemEntity.isDirectorySync(paths.first)
