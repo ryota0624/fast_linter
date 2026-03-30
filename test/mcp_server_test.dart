@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:analyzer/analysis_rule/analysis_rule.dart';
 import 'package:dart_mcp/client.dart';
@@ -122,6 +123,125 @@ void main() {
         expect(rules[0]['enabled'], true);
         expect(rules[0]['severity'], isNull);
         expect(json['total'], 1);
+      });
+    });
+
+    group('analyze_files', () {
+      late Directory tempDir;
+
+      setUp(() {
+        tempDir = Directory.systemTemp.createTempSync('mcp_test_');
+      });
+
+      tearDown(() {
+        tempDir.deleteSync(recursive: true);
+      });
+
+      test('analyzes a single file and returns diagnostics', () async {
+        env = _TestEnv(rules: [AvoidOptionalPositionalParameters()]);
+        await env.initialize();
+
+        final file = File('${tempDir.path}/test.dart');
+        file.writeAsStringSync('void foo([int x = 0]) {}\n');
+
+        final callResult = await env.serverConnection.callTool(
+          CallToolRequest(
+            name: 'analyze_files',
+            arguments: {'paths': [file.path]},
+          ),
+        );
+
+        expect(callResult.isError, isNot(true));
+        final text = TextContent.fromMap(
+          callResult.content.first as Map<String, Object?>,
+        ).text;
+        final json = jsonDecode(text) as Map<String, dynamic>;
+
+        final diagnostics = json['diagnostics'] as List;
+        expect(diagnostics, isNotEmpty);
+        final diag = diagnostics.first as Map<String, dynamic>;
+        expect(diag['file'], file.path);
+        expect(diag['line'], isA<int>());
+        expect(diag['column'], isA<int>());
+        expect(diag['severity'], 'warning');
+        expect(diag['code'], 'avoid_optional_positional_parameters');
+        expect(diag['message'], isA<String>());
+
+        final summary = json['summary'] as Map<String, dynamic>;
+        expect(summary['files_analyzed'], 1);
+        expect(summary['total_diagnostics'], diagnostics.length);
+        final bySeverity = summary['by_severity'] as Map<String, dynamic>;
+        expect(bySeverity['warning'], greaterThan(0));
+      });
+
+      test('analyzes a directory recursively', () async {
+        env = _TestEnv(rules: [AvoidOptionalPositionalParameters()]);
+        await env.initialize();
+
+        final file1 = File('${tempDir.path}/a.dart');
+        file1.writeAsStringSync('void foo([int x = 0]) {}\n');
+        final subDir = Directory('${tempDir.path}/sub');
+        subDir.createSync();
+        final file2 = File('${subDir.path}/b.dart');
+        file2.writeAsStringSync('void bar([String s = ""]) {}\n');
+
+        final callResult = await env.serverConnection.callTool(
+          CallToolRequest(
+            name: 'analyze_files',
+            arguments: {'paths': [tempDir.path]},
+          ),
+        );
+
+        expect(callResult.isError, isNot(true));
+        final text = TextContent.fromMap(
+          callResult.content.first as Map<String, Object?>,
+        ).text;
+        final json = jsonDecode(text) as Map<String, dynamic>;
+        final summary = json['summary'] as Map<String, dynamic>;
+        expect(summary['files_analyzed'], 2);
+        expect(summary['total_diagnostics'], greaterThanOrEqualTo(2));
+      });
+
+      test('filters by severity', () async {
+        env = _TestEnv(rules: [AvoidOptionalPositionalParameters()]);
+        await env.initialize();
+
+        final file = File('${tempDir.path}/test.dart');
+        file.writeAsStringSync('void foo([int x = 0]) {}\n');
+
+        final callResult = await env.serverConnection.callTool(
+          CallToolRequest(
+            name: 'analyze_files',
+            arguments: {
+              'paths': [file.path],
+              'severity_filter': 'error',
+            },
+          ),
+        );
+
+        expect(callResult.isError, isNot(true));
+        final text = TextContent.fromMap(
+          callResult.content.first as Map<String, Object?>,
+        ).text;
+        final json = jsonDecode(text) as Map<String, dynamic>;
+        final diagnostics = json['diagnostics'] as List;
+        expect(diagnostics, isEmpty);
+        final summary = json['summary'] as Map<String, dynamic>;
+        expect(summary['total_diagnostics'], 0);
+      });
+
+      test('returns error for non-existent path', () async {
+        env = _TestEnv(rules: [AvoidOptionalPositionalParameters()]);
+        await env.initialize();
+
+        final callResult = await env.serverConnection.callTool(
+          CallToolRequest(
+            name: 'analyze_files',
+            arguments: {'paths': ['/non/existent/path.dart']},
+          ),
+        );
+
+        expect(callResult.isError, isTrue);
       });
     });
   });
