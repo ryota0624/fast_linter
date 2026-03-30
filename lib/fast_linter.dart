@@ -10,3 +10,4 @@ export 'src/plugin/plugin.dart';
 export 'src/rules/registry.dart';
 export 'src/rules/builtin/all.dart';
 export 'src/lsp/server.dart';
+export 'src/mcp/server.dart';
