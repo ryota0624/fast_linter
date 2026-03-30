@@ -5,3 +5,4 @@ example_rules
 bin/smoke_test.dart
 integration_test/
 .DS_Store
+.claude/
