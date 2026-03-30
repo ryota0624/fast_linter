@@ -8,7 +8,7 @@ import 'package:stream_channel/stream_channel.dart';
 import 'package:test/test.dart';
 
 import 'helpers/test_rules.dart';
-import '../lib/src/mcp/server.dart';
+import 'package:fast_linter/src/mcp/server.dart';
 
 /// Minimal test client.
 base class _TestMCPClient extends MCPClient {
