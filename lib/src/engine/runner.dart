@@ -67,7 +67,7 @@ class LintRunner {
 
     if (excludePatterns.isNotEmpty) {
       final compiledPatterns =
-          excludePatterns.map(_compileGlob).toList(growable: false);
+          excludePatterns.map(compileGlob).toList(growable: false);
       files = files.where((f) {
         return !compiledPatterns.any((re) => re.hasMatch(f.path));
       }).toList();
@@ -206,7 +206,7 @@ _AnalysisResult _processChunk(
 }
 
 /// Pre-compiles a glob pattern to a [RegExp].
-RegExp _compileGlob(String pattern) {
+RegExp compileGlob(String pattern) {
   final buf = StringBuffer('^');
   for (var i = 0; i < pattern.length; i++) {
     final c = pattern[i];

@@ -94,7 +94,8 @@ final class FastLintMcpServer extends MCPServer with ToolsSupport {
       minSeverity = LintSeverity.values.asNameMap()[severityFilterName];
     }
 
-    // Validate all paths exist first.
+    // Validate all paths and record their types.
+    final pathTypes = <String, FileSystemEntityType>{};
     for (final path in paths) {
       final type = FileSystemEntity.typeSync(path);
       if (type == FileSystemEntityType.notFound) {
@@ -103,6 +104,7 @@ final class FastLintMcpServer extends MCPServer with ToolsSupport {
           isError: true,
         );
       }
+      pathTypes[path] = type;
     }
 
     final runner = LintRunner(
@@ -115,14 +117,21 @@ final class FastLintMcpServer extends MCPServer with ToolsSupport {
     var filesAnalyzed = 0;
 
     for (final path in paths) {
-      final type = FileSystemEntity.typeSync(path);
-      if (type == FileSystemEntityType.directory) {
+      if (pathTypes[path] == FileSystemEntityType.directory) {
         final dir = Directory(path);
-        final dartFiles = dir
+        var dartFiles = dir
             .listSync(recursive: true)
             .whereType<File>()
             .where((f) => f.path.endsWith('.dart'))
             .toList();
+        if (_config.excludePatterns.isNotEmpty) {
+          final compiledPatterns = _config.excludePatterns
+              .map(compileGlob)
+              .toList(growable: false);
+          dartFiles = dartFiles
+              .where((f) => !compiledPatterns.any((re) => re.hasMatch(f.path)))
+              .toList();
+        }
         filesAnalyzed += dartFiles.length;
         final diagnostics = await runner.runOnDirectory(
           dir,
