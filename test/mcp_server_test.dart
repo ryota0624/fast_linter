@@ -35,8 +35,17 @@ class _TestEnv {
   late final FastLintMcpServer server;
   late final ServerConnection serverConnection;
 
-  _TestEnv({required List<AbstractAnalysisRule> rules}) : client = _TestMCPClient() {
-    server = FastLintMcpServer(serverChannel, rules: rules);
+  _TestEnv({
+    required List<AbstractAnalysisRule> rules,
+    String? pluginName,
+    List<String>? pluginNames,
+  }) : client = _TestMCPClient() {
+    server = FastLintMcpServer(
+      serverChannel,
+      rules: rules,
+      pluginName: pluginName,
+      pluginNames: pluginNames,
+    );
     serverConnection = client.connectServer(clientChannel);
   }
 
@@ -123,6 +132,86 @@ void main() {
         expect(rules[0]['enabled'], true);
         expect(rules[0]['severity'], isNull);
         expect(json['total'], 1);
+      });
+    });
+
+    group('get_config', () {
+      test('returns current configuration', () async {
+        env = _TestEnv(rules: []);
+        await env.initialize();
+
+        final callResult = await env.serverConnection.callTool(
+          CallToolRequest(name: 'get_config'),
+        );
+
+        expect(callResult.isError, isNot(true));
+        final text = TextContent.fromMap(
+          callResult.content.first as Map<String, Object?>,
+        ).text;
+        final json = jsonDecode(text) as Map<String, dynamic>;
+        expect(json['rule_overrides'], isA<Map>());
+        expect(json['exclude_patterns'], isA<List>());
+        expect(json['linter_rules'], isA<Map>());
+        // Empty config should have empty collections.
+        expect(json['rule_overrides'], isEmpty);
+        expect(json['exclude_patterns'], isEmpty);
+        expect(json['linter_rules'], isEmpty);
+      });
+
+      test('with directory resolves config from that directory', () async {
+        final tempDir = Directory.systemTemp.createTempSync('mcp_config_test_');
+        addTearDown(() => tempDir.deleteSync(recursive: true));
+
+        // Write an analysis_options.yaml with exclude patterns and a plugin config.
+        final optionsFile = File('${tempDir.path}/analysis_options.yaml');
+        optionsFile.writeAsStringSync('''
+analyzer:
+  exclude:
+    - "**/*.g.dart"
+    - "build/**"
+  plugins:
+    test_plugin:
+      diagnostics:
+        some_rule: error
+''');
+
+        env = _TestEnv(rules: [], pluginName: 'test_plugin');
+        await env.initialize();
+
+        final callResult = await env.serverConnection.callTool(
+          CallToolRequest(
+            name: 'get_config',
+            arguments: {'directory': tempDir.path},
+          ),
+        );
+
+        expect(callResult.isError, isNot(true));
+        final text = TextContent.fromMap(
+          callResult.content.first as Map<String, Object?>,
+        ).text;
+        final json = jsonDecode(text) as Map<String, dynamic>;
+        final excludes = json['exclude_patterns'] as List;
+        expect(excludes, contains('**/*.g.dart'));
+        expect(excludes, contains('build/**'));
+        final overrides = json['rule_overrides'] as Map<String, dynamic>;
+        expect(overrides, containsPair('some_rule', {
+          'enabled': true,
+          'severity': 'error',
+        }));
+      });
+
+      test('returns error for non-existent directory', () async {
+        env = _TestEnv(rules: []);
+        await env.initialize();
+
+        final callResult = await env.serverConnection.callTool(
+          CallToolRequest(
+            name: 'get_config',
+            arguments: {'directory': '/non/existent/directory'},
+          ),
+        );
+
+        expect(callResult.isError, isTrue);
       });
     });
 

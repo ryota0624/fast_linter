@@ -7,6 +7,7 @@ import 'package:dart_mcp/server.dart';
 import 'package:stream_channel/stream_channel.dart';
 
 import '../config/analysis_options_config.dart';
+import '../config/config.dart';
 import '../engine/diagnostic.dart';
 import '../engine/runner.dart';
 
@@ -80,7 +81,70 @@ final class FastLintMcpServer extends MCPServer with ToolsSupport {
       _handleAnalyzeFiles,
     );
 
+    registerTool(
+      Tool(
+        name: 'get_config',
+        description: 'Return the current linter configuration.',
+        inputSchema: ObjectSchema(
+          properties: {
+            'directory': StringSchema(
+              description:
+                  'Directory to search for analysis_options.yaml. '
+                  'If omitted, returns the server\'s stored config.',
+            ),
+          },
+        ),
+        annotations: ToolAnnotations(readOnlyHint: true),
+      ),
+      _handleGetConfig,
+    );
+
     return result;
+  }
+
+  CallToolResult _handleGetConfig(CallToolRequest request) {
+    final args = request.arguments;
+    final directory = args?['directory'] as String?;
+
+    AnalysisOptionsConfig config;
+    if (directory != null) {
+      final dir = Directory(directory);
+      if (!dir.existsSync()) {
+        return CallToolResult(
+          content: [TextContent(text: 'Directory not found: $directory')],
+          isError: true,
+        );
+      }
+      if (_pluginNames != null && _pluginNames.isNotEmpty) {
+        config = resolveConfigForPlugins(dir, pluginNames: _pluginNames);
+      } else {
+        config = resolveConfig(dir, pluginName: _pluginName);
+      }
+    } else {
+      config = _config;
+    }
+
+    final result = {
+      'rule_overrides': {
+        for (final entry in config.ruleOverrides.entries)
+          entry.key: {
+            'enabled': entry.value.enabled,
+            'severity': entry.value.severity?.name,
+          },
+      },
+      'exclude_patterns': config.excludePatterns,
+      'linter_rules': {
+        for (final entry in config.linterRules.entries)
+          entry.key: {
+            'enabled': entry.value.enabled,
+            'severity': entry.value.severity?.name,
+          },
+      },
+    };
+
+    return CallToolResult(
+      content: [TextContent(text: jsonEncode(result))],
+    );
   }
 
   Future<CallToolResult> _handleAnalyzeFiles(CallToolRequest request) async {
