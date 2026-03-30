@@ -5,6 +5,32 @@ import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/error/error.dart' show DiagnosticSeverity, LintCode;
 
+/// Test rule that accesses [RuleContext.typeProvider], triggering a skip.
+class TypeAwareTestRule extends AnalysisRule {
+  static const LintCode code = LintCode(
+    'type_aware_test_rule',
+    'Type-aware test rule',
+    severity: DiagnosticSeverity.WARNING,
+  );
+
+  @override
+  LintCode get diagnosticCode => code;
+
+  TypeAwareTestRule()
+      : super(
+          name: 'type_aware_test_rule',
+          description: 'A test rule that requires type-aware analysis',
+        );
+
+  @override
+  void registerNodeProcessors(
+    RuleVisitorRegistry registry,
+    RuleContext context,
+  ) {
+    context.typeProvider; // triggers TypeAwareAccessError → rule is skipped
+  }
+}
+
 /// Test rule: reports optional positional parameters.
 class AvoidOptionalPositionalParameters extends AnalysisRule {
   static const LintCode code = LintCode(

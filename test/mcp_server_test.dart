@@ -319,6 +319,38 @@ analyzer:
         expect(summary['total_diagnostics'], 0);
       });
 
+      test('includes skipped_rules for type-aware rules', () async {
+        env = _TestEnv(rules: [
+          AvoidOptionalPositionalParameters(),
+          TypeAwareTestRule(),
+        ]);
+        await env.initialize();
+
+        final file = File('${tempDir.path}/test.dart');
+        file.writeAsStringSync('void foo([int x = 0]) {}\n');
+
+        final callResult = await env.serverConnection.callTool(
+          CallToolRequest(
+            name: 'analyze_files',
+            arguments: {'paths': [file.path]},
+          ),
+        );
+
+        expect(callResult.isError, isNot(true));
+        final text = TextContent.fromMap(
+          callResult.content.first as Map<String, Object?>,
+        ).text;
+        final json = jsonDecode(text) as Map<String, dynamic>;
+
+        final skippedRules = json['skipped_rules'] as List;
+        expect(skippedRules, contains('type_aware_test_rule'));
+        expect(skippedRules, isNot(contains('avoid_optional_positional_parameters')));
+
+        // Normal rule should still produce diagnostics.
+        final diagnostics = json['diagnostics'] as List;
+        expect(diagnostics, isNotEmpty);
+      });
+
       test('returns error for non-existent path', () async {
         env = _TestEnv(rules: [AvoidOptionalPositionalParameters()]);
         await env.initialize();

@@ -236,6 +236,7 @@ final class FastLintMcpServer extends MCPServer with ToolsSupport {
                 'message': d.message,
               })
           .toList(),
+      'skipped_rules': runner.skippedRules.toList()..sort(),
       'summary': {
         'files_analyzed': filesAnalyzed,
         'total_diagnostics': filtered.length,
