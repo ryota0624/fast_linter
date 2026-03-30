@@ -2,10 +2,12 @@ import 'dart:io';
 
 import 'package:analyzer/analysis_rule/analysis_rule.dart';
 import 'package:args/args.dart';
+import 'package:dart_mcp/stdio.dart';
 import '../config/config.dart';
 import '../engine/diagnostic.dart';
 import '../engine/runner.dart';
 import '../lsp/server.dart';
+import '../mcp/server.dart';
 import '../plugin/plugin.dart';
 import '../rules/registry.dart';
 
@@ -48,6 +50,7 @@ Future<void> runCli(
     ..addFlag('help', abbr: 'h', negatable: false, help: 'Show usage.')
     ..addFlag('version', negatable: false, help: 'Print version.')
     ..addFlag('lsp', negatable: false, help: 'Run as LSP server.')
+    ..addFlag('mcp', negatable: false, help: 'Run as MCP server.')
     ..addFlag('verbose',
         abbr: 'v', negatable: false, help: 'Show verbose output.');
 
@@ -98,6 +101,18 @@ Future<void> runCli(
     if (config.excludePatterns.isNotEmpty) {
       stderr.writeln('Exclude patterns: ${config.excludePatterns}');
     }
+  }
+
+  if (results.flag('mcp')) {
+    final server = FastLintMcpServer(
+      stdioChannel(input: stdin, output: stdout),
+      rules: activeRules,
+      ruleFactory: ruleFactory,
+      pluginName: pluginName,
+      config: config,
+    );
+    await server.done;
+    return;
   }
 
   if (results.flag('lsp')) {
@@ -175,6 +190,7 @@ Future<void> runCliWithPlugins(
     ..addFlag('help', abbr: 'h', negatable: false, help: 'Show usage.')
     ..addFlag('version', negatable: false, help: 'Print version.')
     ..addFlag('lsp', negatable: false, help: 'Run as LSP server.')
+    ..addFlag('mcp', negatable: false, help: 'Run as MCP server.')
     ..addFlag('verbose',
         abbr: 'v', negatable: false, help: 'Show verbose output.');
 
@@ -229,6 +245,17 @@ Future<void> runCliWithPlugins(
     if (config.excludePatterns.isNotEmpty) {
       stderr.writeln('Exclude patterns: ${config.excludePatterns}');
     }
+  }
+
+  if (results.flag('mcp')) {
+    final server = FastLintMcpServer(
+      stdioChannel(input: stdin, output: stdout),
+      rules: activeRules,
+      pluginNames: pluginNames,
+      config: config,
+    );
+    await server.done;
+    return;
   }
 
   if (results.flag('lsp')) {
