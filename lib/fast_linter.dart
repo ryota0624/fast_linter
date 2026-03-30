@@ -7,4 +7,5 @@ export 'src/compat/error_reporter.dart';
 export 'src/compat/linter_context.dart';
 export 'src/cli/main.dart' show runCli, runCliWithPlugins;
 export 'src/plugin/plugin.dart';
+export 'src/rules/registry.dart';
 export 'src/lsp/server.dart';

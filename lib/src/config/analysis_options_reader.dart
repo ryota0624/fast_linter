@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:package_config/package_config.dart';
 import 'package:path/path.dart' as p;
 import 'package:yaml/yaml.dart';
 

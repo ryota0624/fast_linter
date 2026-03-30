@@ -1,5 +1,8 @@
 import '../config/analysis_options_config.dart';
 
+/// A diagnostic reported by a lint rule.
+///
+/// Contains the source location, rule code, message, and severity.
 class LintDiagnostic {
   final String filePath;
   final String code;

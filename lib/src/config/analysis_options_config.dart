@@ -30,16 +30,23 @@ class RuleOverride {
 
 /// Configuration parsed from analysis_options.yaml.
 class AnalysisOptionsConfig {
-  /// Rule overrides keyed by rule name.
+  /// Plugin rule overrides keyed by rule name (from `analyzer.plugins.<name>.diagnostics`).
   ///
   /// Rules not present in this map use their default state (enabled).
   final Map<String, RuleOverride> ruleOverrides;
+
+  /// Official linter rule overrides (from `linter.rules`).
+  ///
+  /// Unlike plugin rules, official rules are **disabled by default**.
+  /// Only rules explicitly listed here (with enabled=true) should be active.
+  final Map<String, RuleOverride> linterRules;
 
   /// Glob patterns for files to exclude from analysis.
   final List<String> excludePatterns;
 
   const AnalysisOptionsConfig({
     this.ruleOverrides = const {},
+    this.linterRules = const {},
     this.excludePatterns = const [],
   });
 
@@ -98,8 +105,27 @@ class AnalysisOptionsConfig {
       }
     }
 
+    // Parse linter.rules
+    final linterRules = <String, RuleOverride>{};
+    final linter = map['linter'];
+    if (linter is YamlMap) {
+      final rules = linter['rules'];
+      if (rules is YamlList) {
+        // List format: - rule_name (all enabled)
+        for (final rule in rules) {
+          if (rule is String) {
+            linterRules[rule] = const RuleOverride.enabled();
+          }
+        }
+      } else if (rules is YamlMap) {
+        // Map format: rule_name: true/false/severity
+        _parseDiagnostics(rules, linterRules);
+      }
+    }
+
     return AnalysisOptionsConfig(
       ruleOverrides: ruleOverrides,
+      linterRules: linterRules,
       excludePatterns: excludePatterns,
     );
   }
@@ -117,8 +143,18 @@ class AnalysisOptionsConfig {
     }).toList();
   }
 
-  /// Returns the severity override for [ruleName], or null if not overridden.
-  LintSeverity? severityFor(String ruleName) => ruleOverrides[ruleName]?.severity;
+  /// Returns the names of linter rules that are explicitly enabled.
+  Set<String> get enabledLinterRuleNames {
+    return {
+      for (final entry in linterRules.entries)
+        if (entry.value.enabled) entry.key,
+    };
+  }
+
+  /// Returns the severity override for [ruleName], checking both
+  /// plugin diagnostics and linter rules.
+  LintSeverity? severityFor(String ruleName) =>
+      ruleOverrides[ruleName]?.severity ?? linterRules[ruleName]?.severity;
 
   static void _parseDiagnostics(
     YamlMap diagnostics,

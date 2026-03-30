@@ -2,12 +2,12 @@ import 'dart:io';
 
 import 'package:analyzer/analysis_rule/analysis_rule.dart';
 import 'package:args/args.dart';
-import '../config/analysis_options_config.dart';
 import '../config/config.dart';
 import '../engine/diagnostic.dart';
 import '../engine/runner.dart';
 import '../lsp/server.dart';
 import '../plugin/plugin.dart';
+import '../rules/registry.dart';
 
 /// CLI exit codes.
 class ExitCode {
@@ -35,11 +35,14 @@ class ExitCode {
 ///   );
 /// }
 /// ```
+/// Provide [registry] to also resolve rules from the `linter: rules:`
+/// section of analysis_options.yaml.
 Future<void> runCli(
   List<String> args, {
   required List<AbstractAnalysisRule> rules,
   RuleFactory? ruleFactory,
   String? pluginName,
+  RuleRegistry? registry,
 }) async {
   final parser = ArgParser()
     ..addFlag('help', abbr: 'h', negatable: false, help: 'Show usage.')
@@ -82,8 +85,13 @@ Future<void> runCli(
       : Directory.current;
   final config = resolveConfig(workDir, pluginName: pluginName);
 
-  // Filter rules based on config
+  // Filter plugin rules based on config
   final activeRules = config.filterRules(rules);
+
+  // Resolve linter rules from registry if provided
+  if (registry != null && config.linterRules.isNotEmpty) {
+    activeRules.addAll(registry.resolveEnabled(config.linterRules));
+  }
 
   if (verbose) {
     stderr.writeln('${activeRules.length}/${rules.length} rule(s) active');
@@ -161,6 +169,7 @@ Future<void> runCli(
 Future<void> runCliWithPlugins(
   List<String> args, {
   required List<PluginDescriptor> plugins,
+  RuleRegistry? registry,
 }) async {
   final parser = ArgParser()
     ..addFlag('help', abbr: 'h', negatable: false, help: 'Show usage.')
@@ -209,6 +218,11 @@ Future<void> runCliWithPlugins(
 
   final config = resolveConfigForPlugins(workDir, pluginNames: pluginNames);
   final activeRules = config.filterRules(allRules);
+
+  // Resolve linter rules from registry if provided
+  if (registry != null && config.linterRules.isNotEmpty) {
+    activeRules.addAll(registry.resolveEnabled(config.linterRules));
+  }
 
   if (verbose) {
     stderr.writeln('${activeRules.length}/${allRules.length} rule(s) active');

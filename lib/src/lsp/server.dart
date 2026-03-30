@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:analyzer/analysis_rule/analysis_rule.dart';
-import '../config/analysis_options_config.dart';
 import '../config/config.dart';
 import '../engine/runner.dart';
 

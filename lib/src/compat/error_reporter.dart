@@ -1,6 +1,5 @@
 import 'package:analyzer/diagnostic/diagnostic.dart';
 import 'package:analyzer/error/listener.dart';
-import 'package:analyzer/source/source.dart';
 import 'package:analyzer/src/string_source.dart';
 import '../config/analysis_options_config.dart';
 import '../engine/diagnostic.dart';
