@@ -28,7 +28,7 @@ class PreferSingleQuotes extends AnalysisRule {
 }
 ```
 
-fast_linterのカスタムルール（stailer_lint）と全く同じAPI。
+fast_linterのカスタムルールと全く同じAPI。
 
 ## AST-only vs Type-aware
 

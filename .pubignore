@@ -1,0 +1,7 @@
+bin/smoke_test.dart
+example_rules/
+integration_test/
+.DS_Store
+develop.md
+handoff_doc.md
+CLAUDE.md

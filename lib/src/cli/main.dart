@@ -160,10 +160,10 @@ Future<void> runCli(
 ///
 /// ```dart
 /// import 'package:fast_linter/fast_linter.dart';
-/// import 'package:stailer_lint/fast_linter_plugin.dart' as stailer;
+/// import 'package:my_lint/fast_linter_plugin.dart' as my_lint;
 ///
 /// void main(List<String> args) {
-///   runCliWithPlugins(args, plugins: [stailer.plugin]);
+///   runCliWithPlugins(args, plugins: [my_lint.plugin]);
 /// }
 /// ```
 Future<void> runCliWithPlugins(

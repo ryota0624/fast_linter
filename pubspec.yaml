@@ -1,15 +1,23 @@
 name: fast_linter
-description: A sample command-line application with basic argument parsing.
+description: >-
+  AST-only Dart linter for speed. Runs existing AbstractAnalysisRule lint rules
+  without type analysis by using only parseString() from package:analyzer.
 version: 0.0.1
-# repository: https://github.com/my_org/my_repo
+# repository: https://github.com/<your-org>/fast_linter
+
+topics:
+  - linter
+  - static-analysis
+  - dart-analyzer
+  - code-quality
 
 environment:
   sdk: ^3.10.9
 
-# Add regular dependencies here.
 dependencies:
   args: ^2.7.0
   analyzer: ^9.0.0
+  path: ^1.9.0
   json_rpc_2: ^3.0.2
   package_config: ^2.1.0
   stream_channel: ^2.1.4

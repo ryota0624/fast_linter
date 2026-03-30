@@ -132,7 +132,7 @@ analyzer:
       expect(config.severityFor('unknown'), isNull);
     });
 
-    test('parses from stailer-server-style config', () {
+    test('parses from linter-only config (no plugin diagnostics)', () {
       final yaml = loadYaml('''
 linter:
   rules:
