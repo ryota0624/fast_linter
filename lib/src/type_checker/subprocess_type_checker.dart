@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:package_config/package_config.dart';
 import 'package:path/path.dart' as p;
 
 import 'type_checker.dart';
@@ -22,12 +23,19 @@ class SubprocessTypeChecker implements TypeChecker {
   /// so that `package:` imports are resolved correctly (required for
   /// Dart workspace layouts where `package_config.json` lives at the
   /// workspace root, not in the individual package directory).
+  ///
+  /// [packageConfig] is used by [WrapperGenerator] to convert file paths
+  /// to `package:` URIs, preventing type duplication.
   SubprocessTypeChecker({
     required String cacheDir,
     String? packagesPath,
+    PackageConfig? packageConfig,
   })  : _cacheDir = cacheDir,
         _packagesPath = packagesPath {
-    _wrapper = WrapperGenerator(outputDir: cacheDir);
+    _wrapper = WrapperGenerator(
+      outputDir: cacheDir,
+      packageConfig: packageConfig,
+    );
   }
 
   @override

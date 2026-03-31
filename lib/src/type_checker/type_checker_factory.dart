@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:package_config/package_config.dart';
 import 'package:path/path.dart' as p;
 
 import 'subprocess_type_checker.dart';
@@ -19,9 +20,16 @@ Future<TypeChecker> createTypeChecker({
   final normalized = p.normalize(projectDir);
   final cacheDir = p.join(normalized, '.dart_tool', 'fast_linter');
   final packagesPath = _findPackageConfig(normalized);
+
+  PackageConfig? packageConfig;
+  if (packagesPath != null) {
+    packageConfig = await loadPackageConfig(File(packagesPath));
+  }
+
   return SubprocessTypeChecker(
     cacheDir: cacheDir,
     packagesPath: packagesPath,
+    packageConfig: packageConfig,
   );
 }
 
