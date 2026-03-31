@@ -78,16 +78,51 @@ List<AbstractAnalysisRule> createAllRules() => [MyRule(), AnotherRule()];
 ```
 Usage: fast_linter [options] [paths...]
 
--h, --help       Show usage.
-    --version    Print version.
-    --lsp        Run as LSP server.
-    --mcp        Run as MCP server.
--v, --verbose    Show verbose output.
+-h, --help          Show usage.
+    --version       Print version.
+    --lsp           Run as LSP server.
+    --mcp           Run as MCP server.
+    --type-check    Enable type checking.
+    --no-lint       Skip lint analysis (use with --type-check).
+    --debounce-ms   Debounce interval for LSP type checking (ms). [default: 500]
+-v, --verbose       Show verbose output.
 ```
+
+### Type checking
+
+`--type-check` enables type checking via `dart compile kernel` (CFE). This is significantly faster than `dart analyze` while still catching type errors.
+
+```bash
+# Lint + type check
+dart run bin/my_linter.dart --type-check lib/
+
+# Type check only (skip linting)
+dart run bin/my_linter.dart --type-check --no-lint lib/
+
+# Multiple paths
+dart run bin/my_linter.dart --type-check lib/ test/
+```
+
+Benchmark on a ~3000-file project:
+
+| Method | Time |
+|--------|------|
+| `fast_linter --type-check` | ~55s |
+| `dart analyze` | ~180s |
+
+Type check results are cached in `.dart_tool/fast_linter/`.
 
 ### LSP mode
 
 Run with `--lsp` to start a JSON-RPC 2.0 LSP server over stdio. It publishes diagnostics on `textDocument/didOpen` and `textDocument/didChange`.
+
+Type checking can be enabled in LSP mode with debounce control:
+
+```bash
+dart run bin/my_linter.dart --lsp --type-check --debounce-ms 300
+```
+
+Lint diagnostics are published immediately. Type check diagnostics are debounced (default 500ms) and merged into the same `publishDiagnostics` notification.
 
 ### MCP server mode
 
@@ -213,6 +248,7 @@ Or for an entire file:
 | **CLI** | `lib/src/cli/main.dart` | `runCli()` and `runCliWithPlugins()`. `--lsp` flag starts LSP mode. |
 | **LSP Server** | `lib/src/lsp/server.dart` | Minimal JSON-RPC 2.0 LSP over stdio. |
 | **MCP Server** | `lib/src/mcp/server.dart` | MCP server with `analyze_files`, `list_rules`, `get_config` tools. |
+| **Type Checker** | `lib/src/type_checker/` | Fast type checking via `dart compile kernel`. `SubprocessTypeChecker` implementation. |
 | **Config** | `lib/src/config/` | `analysis_options.yaml` rule overrides, exclude patterns, `include:` directive resolution. |
 | **Plugin** | `lib/src/plugin/plugin.dart` | `PluginDescriptor` typedef for multi-plugin composition. |
 | **Compat** | `lib/src/compat/` | Compatibility layer for existing `AbstractAnalysisRule` rules. |
