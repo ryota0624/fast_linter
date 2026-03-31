@@ -1,5 +1,5 @@
 // ignore_for_file: depend_on_referenced_packages
-import 'package:analyzer/src/lint/linter.dart' show AbstractAnalysisRule;
+import 'package:analyzer/analysis_rule/analysis_rule.dart';
 import 'package:fast_linter/fast_linter.dart';
 
 // Import your own AbstractAnalysisRule implementations:

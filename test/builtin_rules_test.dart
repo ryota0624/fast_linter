@@ -7,7 +7,6 @@ import 'package:fast_linter/src/rules/builtin/implementation_imports.dart';
 import 'package:fast_linter/src/rules/builtin/prefer_single_quotes.dart';
 import 'package:fast_linter/src/rules/builtin/public_member_api_docs.dart';
 import 'package:fast_linter/src/rules/builtin/unawaited_futures.dart';
-import 'package:fast_linter/src/rules/registry.dart';
 import 'package:test/test.dart';
 
 void main() {

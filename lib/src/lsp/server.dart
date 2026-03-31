@@ -76,18 +76,17 @@ class FastLintLspServer {
           buffer.write(data.substring(headerEnd + 4));
         }
 
-        if (contentLength != null) {
-          final current = buffer.toString();
-          if (current.length < contentLength) break;
+        final cl = contentLength;
+        final current = buffer.toString();
+        if (current.length < cl) break;
 
-          final body = current.substring(0, contentLength);
-          buffer.clear();
-          buffer.write(current.substring(contentLength));
-          contentLength = null;
+        final body = current.substring(0, cl);
+        buffer.clear();
+        buffer.write(current.substring(cl));
+        contentLength = null;
 
-          final message = jsonDecode(body) as Map<String, dynamic>;
-          await _handleMessage(message);
-        }
+        final message = jsonDecode(body) as Map<String, dynamic>;
+        await _handleMessage(message);
       }
     }
   }

@@ -1,5 +1,6 @@
 import 'package:analyzer/diagnostic/diagnostic.dart';
 import 'package:analyzer/error/listener.dart';
+// ignore: implementation_imports
 import 'package:analyzer/src/string_source.dart';
 import '../config/analysis_options_config.dart';
 import '../engine/diagnostic.dart';
