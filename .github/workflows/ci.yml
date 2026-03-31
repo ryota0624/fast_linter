@@ -15,5 +15,9 @@ jobs:
         with:
           sdk: stable
       - run: dart pub get
-      - run: dart analyze
-      - run: dart test
+      - name: Run fast_linter
+        run: dart run bin/fast_linter.dart lib/
+      - name: Run dart test
+        run: dart test
+      - name: Run dart analyze
+        run: dart analyze

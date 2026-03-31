@@ -1,6 +1,6 @@
 import 'package:fast_linter/fast_linter.dart';
 
-/// Entry point for the fast_linter CLI.
+/// Entry point for the fast_linter CLI with built-in rules.
 ///
 /// To use with your own rules, create a separate Dart executable that
 /// calls [runCli] with your rule instances:
@@ -14,7 +14,10 @@ import 'package:fast_linter/fast_linter.dart';
 /// }
 /// ```
 void main(List<String> args) {
-  // No built-in rules; this is a placeholder.
-  // Users should create their own entry point with their rules.
-  runCli(args, rules: []);
+  runCli(
+    args,
+    rules: createBuiltinRules(),
+    ruleFactory: createBuiltinRules,
+    registry: createBuiltinRegistry(),
+  );
 }
