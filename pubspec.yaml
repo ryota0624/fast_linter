@@ -2,8 +2,8 @@ name: fast_linter
 description: >-
   AST-only Dart linter for speed. Runs existing AbstractAnalysisRule lint rules
   without type analysis by using only parseString() from package:analyzer.
-version: 0.0.1
-# repository: https://github.com/<your-org>/fast_linter
+version: 0.1.0
+repository: https://github.com/ryota0624/fast_linter
 
 topics:
   - linter

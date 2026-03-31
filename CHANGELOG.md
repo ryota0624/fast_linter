@@ -1,3 +1,9 @@
+## 0.1.0
+
+- MCP server mode (`--mcp` flag) with `analyze_files`, `list_rules`, `get_config` tools.
+- Built-in lint rules (7 rules forked from dart-lang/sdk).
+- Type checker integration (`--type-check` flag).
+
 ## 0.0.1
 
 - AST-only analysis engine using `parseString()` (no type resolution).
