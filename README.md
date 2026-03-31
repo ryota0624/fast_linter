@@ -18,7 +18,7 @@ Add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  fast_linter: ^0.0.1
+  fast_linter: ^0.2.0
 ```
 
 ```bash
