@@ -5,6 +5,9 @@ import 'dart:io';
 import 'package:analyzer/analysis_rule/analysis_rule.dart';
 import '../config/config.dart';
 import '../engine/runner.dart';
+import '../type_checker/type_checker.dart';
+import '../type_checker/type_checker_factory.dart';
+import '../type_checker/type_diagnostic.dart';
 
 /// A minimal LSP server for fast_linter.
 ///
@@ -23,6 +26,12 @@ class FastLintLspServer {
   final Map<String, String> _openDocuments = {};
   final Set<String> _reportedSkippedRules = {};
 
+  final bool _typeCheckEnabled;
+  final int _debounceMs;
+  TypeChecker? _typeChecker;
+  Timer? _debounceTimer;
+  final Map<String, List<TypeDiagnostic>> _lastTypeDiagnostics = {};
+
   late final IOSink _output;
   bool _shutdownRequested = false;
 
@@ -31,7 +40,11 @@ class FastLintLspServer {
     required List<AbstractAnalysisRule> rules,
     String? pluginName,
     List<String>? pluginNames,
+    bool typeCheck = false,
+    int debounceMs = 500,
   })  : _allRules = rules,
+        _typeCheckEnabled = typeCheck,
+        _debounceMs = debounceMs,
         _pluginNames = pluginNames ??
             (pluginName != null ? [pluginName] : const []) {
     _runner = LintRunner(rules: _allRules);
@@ -105,6 +118,11 @@ class FastLintLspServer {
           _loadConfig(rootUri);
         }
 
+        if (_typeCheckEnabled && rootUri != null) {
+          final rootPath = Uri.parse(rootUri).toFilePath();
+          _typeChecker = await createTypeChecker(projectDir: rootPath);
+        }
+
         _sendResponse(id, {
           'capabilities': {
             'textDocumentSync': {
@@ -127,6 +145,7 @@ class FastLintLspServer {
         final text = textDocument['text'] as String;
         _openDocuments[uri] = text;
         _publishDiagnostics(uri, text);
+        _scheduleTypeCheck(uri, text);
 
       case 'textDocument/didChange':
         final textDocument =
@@ -136,6 +155,7 @@ class FastLintLspServer {
         final text = (changes.last as Map<String, dynamic>)['text'] as String;
         _openDocuments[uri] = text;
         _publishDiagnostics(uri, text);
+        _scheduleTypeCheck(uri, text);
 
       case 'textDocument/didClose':
         final textDocument = params!['textDocument'] as Map<String, dynamic>;
@@ -148,6 +168,8 @@ class FastLintLspServer {
 
       case 'shutdown':
         _shutdownRequested = true;
+        _debounceTimer?.cancel();
+        await _typeChecker?.dispose();
         _sendResponse(id, null);
 
       case 'exit':
@@ -200,6 +222,65 @@ class FastLintLspServer {
             'type-aware analysis: ${names.join(', ')}',
       });
     }
+  }
+
+  void _scheduleTypeCheck(String uri, String text) {
+    if (!_typeCheckEnabled || _typeChecker == null) return;
+
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(Duration(milliseconds: _debounceMs), () async {
+      final filePath = _uriToPath(uri);
+      try {
+        final typeDiags = await _typeChecker!.checkIncremental([filePath]);
+        _lastTypeDiagnostics[uri] = typeDiags;
+        _publishMergedDiagnostics(uri, text);
+      } catch (e) {
+        _sendNotification('window/logMessage', {
+          'type': 2,
+          'message': '[fast_linter] Type check error: $e',
+        });
+      }
+    });
+  }
+
+  void _publishMergedDiagnostics(String uri, String text) {
+    final filePath = _uriToPath(uri);
+    final lintDiags = _runner.runOnSource(text, filePath: filePath);
+
+    final lspDiagnostics = lintDiags.map((d) {
+      return {
+        'range': {
+          'start': {'line': d.line - 1, 'character': d.column - 1},
+          'end': {'line': d.line - 1, 'character': d.column - 1 + d.length},
+        },
+        'severity': d.severity.lspValue,
+        'code': d.code,
+        'source': 'fast_linter',
+        'message': d.message,
+      };
+    }).toList();
+
+    final typeDiags = _lastTypeDiagnostics[uri] ?? [];
+    for (final d in typeDiags) {
+      lspDiagnostics.add({
+        'range': {
+          'start': {'line': d.line - 1, 'character': d.column - 1},
+          'end': {
+            'line': d.line - 1,
+            'character': d.column - 1 + d.length,
+          },
+        },
+        'severity': d.severity.lspValue,
+        'code': 'type_error',
+        'source': 'fast_linter/type_check',
+        'message': d.message,
+      });
+    }
+
+    _sendNotification('textDocument/publishDiagnostics', {
+      'uri': uri,
+      'diagnostics': lspDiagnostics,
+    });
   }
 
   void _sendResponse(dynamic id, dynamic result) {

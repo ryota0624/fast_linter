@@ -141,6 +141,8 @@ Future<void> runCli(
     final server = FastLintLspServer(
       rules: activeRules,
       pluginName: pluginName,
+      typeCheck: typeCheck,
+      debounceMs: int.parse(results.option('debounce-ms')!),
     );
     await server.start();
     return;
@@ -342,6 +344,8 @@ Future<void> runCliWithPlugins(
     final server = FastLintLspServer(
       rules: activeRules,
       pluginNames: pluginNames,
+      typeCheck: typeCheck,
+      debounceMs: int.parse(results.option('debounce-ms')!),
     );
     await server.start();
     return;
