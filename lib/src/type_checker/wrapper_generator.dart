@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:path/path.dart' as p;
+
 /// Generates a wrapper Dart file that imports all target files.
 ///
 /// Used to compile multiple files in a single `dart compile kernel` invocation.
@@ -15,7 +17,7 @@ class WrapperGenerator {
   String generate(List<String> filePaths) {
     final buffer = StringBuffer();
     for (final path in filePaths) {
-      final absPath = File(path).absolute.path;
+      final absPath = p.normalize(File(path).absolute.path);
       buffer.writeln("import '$absPath';");
     }
     buffer.writeln();
@@ -26,7 +28,7 @@ class WrapperGenerator {
       dir.createSync(recursive: true);
     }
 
-    final wrapperPath = '${dir.path}/_fast_linter_wrapper.dart';
+    final wrapperPath = p.join(outputDir, '_fast_linter_wrapper.dart');
     File(wrapperPath).writeAsStringSync(buffer.toString());
     _lastWrapperPath = wrapperPath;
     return wrapperPath;

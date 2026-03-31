@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:path/path.dart' as p;
+
 import 'type_checker.dart';
 import 'type_diagnostic.dart';
 import 'wrapper_generator.dart';
@@ -9,22 +11,38 @@ import 'wrapper_generator.dart';
 /// Does not support true incremental compilation — [checkIncremental]
 /// delegates to [check] (full rebuild each time).
 class SubprocessTypeChecker implements TypeChecker {
+  final String _projectDir;
   final String _cacheDir;
   late final WrapperGenerator _wrapper;
 
   /// Creates a type checker that caches results in [cacheDir].
-  SubprocessTypeChecker({required String cacheDir}) : _cacheDir = cacheDir {
+  ///
+  /// [projectDir] is used to locate `.dart_tool/package_config.json`
+  /// so that `dart compile kernel` can resolve `package:` imports correctly.
+  SubprocessTypeChecker({
+    required String projectDir,
+    required String cacheDir,
+  })  : _projectDir = projectDir,
+        _cacheDir = cacheDir {
     _wrapper = WrapperGenerator(outputDir: cacheDir);
   }
 
   @override
   Future<List<TypeDiagnostic>> check(List<String> filePaths) async {
     final wrapperPath = _wrapper.generate(filePaths);
-    final outputPath = '$_cacheDir/type_check.dill';
+    final outputPath = p.join(_cacheDir, 'type_check.dill');
+    final packagesPath =
+        p.join(_projectDir, '.dart_tool', 'package_config.json');
 
     final result = await Process.run(
       Platform.resolvedExecutable,
-      ['compile', 'kernel', '--output=$outputPath', wrapperPath],
+      [
+        'compile',
+        'kernel',
+        '--output=$outputPath',
+        '--packages=$packagesPath',
+        wrapperPath,
+      ],
     );
 
     final diagnostics = <TypeDiagnostic>[];

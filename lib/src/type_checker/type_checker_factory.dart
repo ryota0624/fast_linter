@@ -1,3 +1,5 @@
+import 'package:path/path.dart' as p;
+
 import 'subprocess_type_checker.dart';
 import 'type_checker.dart';
 
@@ -10,6 +12,10 @@ import 'type_checker.dart';
 Future<TypeChecker> createTypeChecker({
   required String projectDir,
 }) async {
-  final cacheDir = '$projectDir/.dart_tool/fast_linter';
-  return SubprocessTypeChecker(cacheDir: cacheDir);
+  final normalized = p.normalize(projectDir);
+  final cacheDir = p.join(normalized, '.dart_tool', 'fast_linter');
+  return SubprocessTypeChecker(
+    projectDir: normalized,
+    cacheDir: cacheDir,
+  );
 }
