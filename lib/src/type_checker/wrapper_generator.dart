@@ -4,7 +4,7 @@ import 'package:package_config/package_config.dart';
 import 'package:path/path.dart' as p;
 
 /// Suffixes of generated `part of` files that must not be imported directly.
-const _partFileSuffixes = ['.g.dart', '.freezed.dart'];
+const _partFileSuffixes = ['.g.dart', '.freezed.dart', '.mustache.dart'];
 
 /// Generates a wrapper Dart file that imports all target files.
 ///
