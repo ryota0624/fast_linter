@@ -4,9 +4,11 @@ import 'dart:io';
 ///
 /// Used to compile multiple files in a single `dart compile kernel` invocation.
 class WrapperGenerator {
+  /// The directory where wrapper files are generated.
   final String outputDir;
   String? _lastWrapperPath;
 
+  /// Creates a generator targeting [outputDir].
   WrapperGenerator({required this.outputDir});
 
   /// Generates a wrapper file importing all [filePaths] and returns its path.

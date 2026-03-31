@@ -23,8 +23,7 @@ final class FastLintMcpServer extends MCPServer with ToolsSupport {
 
   /// Creates a new MCP server with the given lint [rules].
   FastLintMcpServer(
-    // ignore: use_super_parameters
-    StreamChannel<String> channel, {
+    super.channel, {
     required List<AbstractAnalysisRule> rules,
     RuleFactory? ruleFactory,
     String? pluginName,
@@ -36,7 +35,6 @@ final class FastLintMcpServer extends MCPServer with ToolsSupport {
         _pluginNames = pluginNames,
         _config = config ?? AnalysisOptionsConfig.empty,
         super.fromStreamChannel(
-          channel,
           implementation: Implementation(
             name: 'fast_linter',
             version: '0.0.1',
