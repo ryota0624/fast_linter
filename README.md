@@ -81,12 +81,81 @@ Usage: fast_linter [options] [paths...]
 -h, --help       Show usage.
     --version    Print version.
     --lsp        Run as LSP server.
+    --mcp        Run as MCP server.
 -v, --verbose    Show verbose output.
 ```
 
 ### LSP mode
 
 Run with `--lsp` to start a JSON-RPC 2.0 LSP server over stdio. It publishes diagnostics on `textDocument/didOpen` and `textDocument/didChange`.
+
+### MCP server mode
+
+Run with `--mcp` to start a [Model Context Protocol](https://modelcontextprotocol.io/) server over stdio. This allows AI agents (Claude Code, etc.) and MCP-compatible IDEs to invoke lint analysis programmatically.
+
+```bash
+dart run bin/my_linter.dart --mcp
+```
+
+#### Provided tools
+
+| Tool | Description |
+|------|-------------|
+| `analyze_files` | Analyze Dart files/directories and return diagnostics with severity filtering |
+| `list_rules` | List all registered lint rules with enabled/severity status |
+| `get_config` | Get current linter configuration (rule overrides, exclude patterns) |
+
+#### Setting up with Claude Code
+
+Add the following to your Claude Code MCP settings (`~/.claude/claude_desktop_config.json` or project `.claude/settings.json`):
+
+```json
+{
+  "mcpServers": {
+    "fast_linter": {
+      "command": "dart",
+      "args": ["run", "/path/to/your/bin/my_linter.dart", "--mcp"]
+    }
+  }
+}
+```
+
+Replace `/path/to/your/bin/my_linter.dart` with the path to your custom linter executable.
+
+#### Example: analyze_files
+
+Request:
+```json
+{
+  "name": "analyze_files",
+  "arguments": {
+    "paths": ["lib/"],
+    "severity_filter": "warning"
+  }
+}
+```
+
+Response:
+```json
+{
+  "diagnostics": [
+    {
+      "file": "lib/src/foo.dart",
+      "line": 10,
+      "column": 3,
+      "severity": "warning",
+      "code": "avoid_void_async",
+      "message": "Avoid async functions that return void."
+    }
+  ],
+  "skipped_rules": [],
+  "summary": {
+    "files_analyzed": 5,
+    "total_diagnostics": 1,
+    "by_severity": { "info": 0, "warning": 1, "error": 0 }
+  }
+}
+```
 
 ## Configuration
 
@@ -133,7 +202,7 @@ Or for an entire file:
 [LintRunner] (lib/src/engine/runner.dart)
   parseString() -> RuleVisitorRegistry -> AST walk -> List<LintDiagnostic>
       |                |
-  [CLI output]    [LSP notifications]
+  [CLI output]    [LSP notifications]    [MCP tools]
 ```
 
 ### Key components
@@ -143,6 +212,7 @@ Or for an entire file:
 | **LintRunner** | `lib/src/engine/runner.dart` | Core analysis engine. `runOnFile` / `runOnSource` / `runOnDirectory`. Isolate-based parallelism. |
 | **CLI** | `lib/src/cli/main.dart` | `runCli()` and `runCliWithPlugins()`. `--lsp` flag starts LSP mode. |
 | **LSP Server** | `lib/src/lsp/server.dart` | Minimal JSON-RPC 2.0 LSP over stdio. |
+| **MCP Server** | `lib/src/mcp/server.dart` | MCP server with `analyze_files`, `list_rules`, `get_config` tools. |
 | **Config** | `lib/src/config/` | `analysis_options.yaml` rule overrides, exclude patterns, `include:` directive resolution. |
 | **Plugin** | `lib/src/plugin/plugin.dart` | `PluginDescriptor` typedef for multi-plugin composition. |
 | **Compat** | `lib/src/compat/` | Compatibility layer for existing `AbstractAnalysisRule` rules. |
