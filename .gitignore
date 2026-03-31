@@ -6,3 +6,5 @@ bin/smoke_test.dart
 integration_test/
 .DS_Store
 .claude/
+docs/superpowers
+_build
