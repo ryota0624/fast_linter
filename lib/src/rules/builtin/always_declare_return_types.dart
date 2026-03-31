@@ -11,7 +11,9 @@ import 'package:analyzer/error/error.dart';
 
 import 'codes.dart' as codes;
 
+/// Lint rule that requires explicit return type declarations.
 class AlwaysDeclareReturnTypes extends MultiAnalysisRule {
+  /// Creates the always_declare_return_types rule.
   AlwaysDeclareReturnTypes()
       : super(
           name: 'always_declare_return_types',

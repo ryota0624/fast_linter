@@ -13,7 +13,9 @@ import 'package:analyzer/error/error.dart';
 
 import 'codes.dart' as codes;
 
+/// Placeholder rule for unawaited_futures (requires type resolution).
 class UnawaitedFutures extends AnalysisRule {
+  /// Creates the unawaited_futures rule.
   UnawaitedFutures()
       : super(
           name: 'unawaited_futures',

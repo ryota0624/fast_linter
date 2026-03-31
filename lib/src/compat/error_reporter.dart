@@ -8,18 +8,22 @@ import '../engine/ignore_comments.dart';
 
 /// [DiagnosticListener] implementation that collects diagnostics as
 /// [LintDiagnostic]s.
+/// [DiagnosticListener] that collects diagnostics as [LintDiagnostic]s.
 class DiagnosticCollector implements DiagnosticListener {
+  /// The file path associated with collected diagnostics.
   final String filePath;
   final String _source;
   final LintSeverity? _severityOverride;
   final IgnoreInfo _ignoreInfo;
   final List<LintDiagnostic> _diagnostics = [];
 
+  /// Creates a collector for the given [filePath] and source code.
   DiagnosticCollector(this.filePath, this._source,
       {LintSeverity? severityOverride, IgnoreInfo? ignoreInfo})
       : _severityOverride = severityOverride,
         _ignoreInfo = ignoreInfo ?? IgnoreInfo.parse(_source);
 
+  /// The collected diagnostics (unmodifiable).
   List<LintDiagnostic> get diagnostics => List.unmodifiable(_diagnostics);
 
   @override

@@ -13,8 +13,13 @@ import '../rules/registry.dart';
 
 /// CLI exit codes.
 class ExitCode {
+  /// Normal successful exit.
   static const success = 0;
+
+  /// Lint violations were found.
   static const lintFound = 1;
+
+  /// A usage or runtime error occurred.
   static const error = 2;
 }
 

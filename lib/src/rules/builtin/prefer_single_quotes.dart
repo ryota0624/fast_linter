@@ -10,7 +10,9 @@ import 'package:analyzer/error/error.dart';
 
 import 'codes.dart' as codes;
 
+/// Lint rule that flags double-quoted strings that don't contain single quotes.
 class PreferSingleQuotes extends AnalysisRule {
+  /// Creates the prefer_single_quotes rule.
   PreferSingleQuotes()
       : super(
           name: 'prefer_single_quotes',

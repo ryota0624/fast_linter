@@ -21,6 +21,7 @@ final class FastLintMcpServer extends MCPServer with ToolsSupport {
   final List<String>? _pluginNames;
   final AnalysisOptionsConfig _config;
 
+  /// Creates a new MCP server with the given lint [rules].
   FastLintMcpServer(
     StreamChannel<String> channel, {
     required List<AbstractAnalysisRule> rules,

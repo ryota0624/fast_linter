@@ -14,11 +14,13 @@ import 'package:analyzer/error/error.dart';
 
 import 'codes.dart' as codes;
 
+/// Lint rule that flags async functions with a void return type.
 class AvoidVoidAsync extends AnalysisRule {
+  /// Creates the avoid_void_async rule.
   AvoidVoidAsync()
       : super(
           name: 'avoid_void_async',
-          description: "Avoid `async` functions that return `void`.",
+          description: 'Avoid `async` functions that return `void`.',
         );
 
   @override

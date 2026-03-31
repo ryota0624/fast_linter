@@ -3,6 +3,7 @@ import 'dart:isolate';
 
 import 'package:analyzer/analysis_rule/analysis_rule.dart';
 import 'package:analyzer/dart/analysis/utilities.dart';
+// ignore: implementation_imports
 import 'package:analyzer/src/lint/linter_visitor.dart';
 import '../compat/error_reporter.dart';
 import '../compat/linter_context.dart';
@@ -16,7 +17,9 @@ import 'ignore_comments.dart';
 /// across Isolate boundaries.
 typedef RuleFactory = List<AbstractAnalysisRule> Function();
 
+/// Main analysis engine that runs lint rules on Dart source files.
 class LintRunner {
+  /// The lint rules to apply.
   final List<AbstractAnalysisRule> rules;
   final List<RuleFactory>? _ruleFactories;
   final AnalysisOptionsConfig? _config;
@@ -38,11 +41,13 @@ class LintRunner {
             (ruleFactory != null ? [ruleFactory] : null),
         _config = config;
 
+  /// Runs lint rules on a single [file] and returns diagnostics.
   List<LintDiagnostic> runOnFile(File file) {
     final source = file.readAsStringSync();
     return runOnSource(source, filePath: file.path);
   }
 
+  /// Runs lint rules on the given [source] code and returns diagnostics.
   List<LintDiagnostic> runOnSource(String source, {required String filePath}) {
     final result = _runOnSourceWithRules(source,
         filePath: filePath, rules: rules, config: _config);

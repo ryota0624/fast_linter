@@ -49,7 +49,9 @@ bool _isPartDirective(Directive node) => node is PartDirective;
 bool _isRelativeDirective(NamespaceDirective node) =>
     !_isAbsoluteDirective(node);
 
+/// Lint rule that enforces Effective Dart directive ordering conventions.
 class DirectivesOrdering extends MultiAnalysisRule {
+  /// All diagnostic codes reported by this rule.
   static const List<DiagnosticCode> allCodes = [
     codes.directivesOrderingAlphabetical,
     codes.directivesOrderingDart,
@@ -57,6 +59,7 @@ class DirectivesOrdering extends MultiAnalysisRule {
     codes.directivesOrderingPackageBeforeRelative,
   ];
 
+  /// Creates the directives_ordering rule.
   DirectivesOrdering()
       : super(
           name: 'directives_ordering',

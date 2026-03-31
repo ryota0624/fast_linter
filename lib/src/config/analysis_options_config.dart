@@ -3,8 +3,13 @@ import 'package:yaml/yaml.dart';
 
 /// Severity level for a diagnostic.
 enum LintSeverity {
+  /// Informational diagnostic.
   info,
+
+  /// Warning diagnostic.
   warning,
+
+  /// Error diagnostic.
   error;
 
   /// Maps to LSP DiagnosticSeverity values.
@@ -16,13 +21,21 @@ enum LintSeverity {
 }
 
 /// Configuration override for a single rule.
+/// Configuration override for a single rule.
 class RuleOverride {
+  /// Whether the rule is enabled.
   final bool enabled;
+
+  /// Optional severity override for the rule.
   final LintSeverity? severity;
 
+  /// Creates a rule override with the given [enabled] state and optional [severity].
   const RuleOverride({required this.enabled, this.severity});
 
+  /// Creates an enabled rule override with an optional [severity].
   const RuleOverride.enabled([this.severity]) : enabled = true;
+
+  /// Creates a disabled rule override.
   const RuleOverride.disabled()
       : enabled = false,
         severity = null;
@@ -44,6 +57,7 @@ class AnalysisOptionsConfig {
   /// Glob patterns for files to exclude from analysis.
   final List<String> excludePatterns;
 
+  /// Creates a config with optional rule overrides and exclude patterns.
   const AnalysisOptionsConfig({
     this.ruleOverrides = const {},
     this.linterRules = const {},
@@ -52,6 +66,19 @@ class AnalysisOptionsConfig {
 
   /// An empty config where all rules are enabled and nothing is excluded.
   static const empty = AnalysisOptionsConfig();
+
+  /// Filters [allRules] based on [ruleOverrides].
+  ///
+  /// Rules not mentioned in overrides are kept (enabled by default).
+  /// Rules explicitly set to `false` are removed.
+  List<AbstractAnalysisRule> filterRules(List<AbstractAnalysisRule> allRules) {
+    if (ruleOverrides.isEmpty) return allRules;
+    return allRules.where((rule) {
+      final override = ruleOverrides[rule.name];
+      if (override == null) return true;
+      return override.enabled;
+    }).toList();
+  }
 
   /// Parses the relevant sections from a fully-merged analysis_options.yaml map.
   ///
@@ -128,19 +155,6 @@ class AnalysisOptionsConfig {
       linterRules: linterRules,
       excludePatterns: excludePatterns,
     );
-  }
-
-  /// Filters [allRules] based on [ruleOverrides].
-  ///
-  /// Rules not mentioned in overrides are kept (enabled by default).
-  /// Rules explicitly set to `false` are removed.
-  List<AbstractAnalysisRule> filterRules(List<AbstractAnalysisRule> allRules) {
-    if (ruleOverrides.isEmpty) return allRules;
-    return allRules.where((rule) {
-      final override = ruleOverrides[rule.name];
-      if (override == null) return true;
-      return override.enabled;
-    }).toList();
   }
 
   /// Returns the names of linter rules that are explicitly enabled.

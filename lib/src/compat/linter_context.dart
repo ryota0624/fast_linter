@@ -9,6 +9,7 @@ class TypeAwareAccessError extends UnimplementedError {
   /// The [RuleContext] member that was accessed (e.g. `typeProvider`).
   final String member;
 
+  /// Creates a [TypeAwareAccessError] for the given [member].
   TypeAwareAccessError({required this.member, required String message})
       : super(message);
 }

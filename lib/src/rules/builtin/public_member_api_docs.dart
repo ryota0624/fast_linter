@@ -14,7 +14,9 @@ import 'package:analyzer/error/error.dart';
 
 import 'codes.dart' as codes;
 
+/// Lint rule that requires doc comments on all public members.
 class PublicMemberApiDocs extends AnalysisRule {
+  /// Creates the public_member_api_docs rule.
   PublicMemberApiDocs()
       : super(
           name: 'public_member_api_docs',

@@ -26,6 +26,7 @@ class FastLintLspServer {
   late final IOSink _output;
   bool _shutdownRequested = false;
 
+  /// Creates a new LSP server with the given lint [rules].
   FastLintLspServer({
     required List<AbstractAnalysisRule> rules,
     String? pluginName,

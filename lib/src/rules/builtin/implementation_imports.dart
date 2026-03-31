@@ -13,7 +13,9 @@ import 'package:analyzer/error/error.dart';
 
 import 'codes.dart' as codes;
 
+/// Lint rule that flags imports of implementation files from other packages.
 class ImplementationImports extends AnalysisRule {
+  /// Creates the implementation_imports rule.
   ImplementationImports()
       : super(
           name: 'implementation_imports',
