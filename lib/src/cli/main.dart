@@ -11,7 +11,6 @@ import '../mcp/server.dart';
 import '../plugin/plugin.dart';
 import '../rules/registry.dart';
 import '../type_checker/type_checker_factory.dart';
-import '../type_checker/type_diagnostic.dart';
 
 /// CLI exit codes.
 class ExitCode {
