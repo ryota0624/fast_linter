@@ -23,6 +23,7 @@ final class FastLintMcpServer extends MCPServer with ToolsSupport {
 
   /// Creates a new MCP server with the given lint [rules].
   FastLintMcpServer(
+    // ignore: use_super_parameters
     StreamChannel<String> channel, {
     required List<AbstractAnalysisRule> rules,
     RuleFactory? ruleFactory,
@@ -69,10 +70,10 @@ final class FastLintMcpServer extends MCPServer with ToolsSupport {
               description: 'File or directory paths to analyze.',
               items: StringSchema(),
             ),
-            'severity_filter': StringSchema(
+            'severity_filter': UntitledSingleSelectEnumSchema(
               description:
                   'Filter diagnostics at this severity or above (info < warning < error).',
-              enumValues: ['info', 'warning', 'error'],
+              values: ['info', 'warning', 'error'],
             ),
           },
           required: ['paths'],

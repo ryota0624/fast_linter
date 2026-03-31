@@ -1,17 +1,28 @@
-// lib/src/type_checker/type_diagnostic.dart
-
-/// Severity level for a type diagnostic.
-enum TypeDiagnosticSeverity {
+/// Severity level for type diagnostics.
+enum TypeSeverity {
+  /// Error severity.
   error,
-  warning,
-  info,
-  hint,
+
+  /// Warning severity.
+  warning;
+
+  /// Returns the LSP DiagnosticSeverity numeric value.
+  int get lspValue => switch (this) {
+        error => 1,
+        warning => 2,
+      };
 }
 
-/// Represents a single diagnostic reported by the type checker.
+/// A diagnostic reported by the type checker.
 class TypeDiagnostic {
   /// The file path where the diagnostic was reported.
   final String filePath;
+
+  /// The human-readable diagnostic message.
+  final String message;
+
+  /// The severity level of this diagnostic.
+  final TypeSeverity severity;
 
   /// The 1-based line number.
   final int line;
@@ -19,26 +30,20 @@ class TypeDiagnostic {
   /// The 1-based column number.
   final int column;
 
-  /// The human-readable diagnostic message.
-  final String message;
+  /// The length of the source span covered by this diagnostic.
+  final int length;
 
-  /// The severity level of this diagnostic.
-  final TypeDiagnosticSeverity severity;
-
-  /// The error code (e.g., "INVALID_ASSIGNMENT").
-  final String? code;
-
+  /// Creates a type diagnostic with the given location and metadata.
   const TypeDiagnostic({
     required this.filePath,
-    required this.line,
-    required this.column,
     required this.message,
     required this.severity,
-    this.code,
+    required this.line,
+    required this.column,
+    required this.length,
   });
 
   @override
   String toString() =>
-      '${severity.name.toUpperCase()} $filePath:$line:$column - $message'
-      '${code != null ? ' ($code)' : ''}';
+      '$filePath:$line:$column - ${severity.name} - $message';
 }

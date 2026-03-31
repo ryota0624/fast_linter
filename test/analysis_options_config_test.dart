@@ -16,8 +16,8 @@ class _StubRule extends AnalysisRule {
   @override
   LintCode get diagnosticCode => code;
 
-  _StubRule({required String name})
-      : super(name: name, description: 'Stub rule');
+  _StubRule({required super.name})
+      : super(description: 'Stub rule');
 
   @override
   void registerNodeProcessors(

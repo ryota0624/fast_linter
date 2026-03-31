@@ -20,4 +20,4 @@ jobs:
       - name: Run dart test
         run: dart test
       - name: Run dart analyze
-        run: dart analyze
+        run: dart analyze --fatal-infos

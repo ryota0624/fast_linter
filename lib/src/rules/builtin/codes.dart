@@ -1,6 +1,8 @@
 /// LintCode constants for forked built-in rules.
 ///
 /// These mirror the diagnostic codes from dart-lang/sdk pkg/linter.
+library;
+
 import 'package:analyzer/error/error.dart' show DiagnosticSeverity, LintCode;
 
 /// Diagnostic code for directives not sorted alphabetically.

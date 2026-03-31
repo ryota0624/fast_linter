@@ -2,9 +2,6 @@ import 'dart:io';
 
 import 'package:analyzer/analysis_rule/analysis_rule.dart';
 import 'package:fast_linter/fast_linter.dart';
-import 'package:fast_linter/src/config/config.dart';
-import 'package:fast_linter/src/config/analysis_options_config.dart';
-import 'package:fast_linter/src/plugin/plugin.dart';
 import 'package:test/test.dart';
 import 'package:yaml/yaml.dart';
 
