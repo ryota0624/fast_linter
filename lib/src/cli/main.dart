@@ -88,11 +88,7 @@ Future<void> runCli(
   }
 
   final verbose = results.flag('verbose');
-  final paths = results.rest;
-
-  if (paths.isEmpty) {
-    paths.add('.');
-  }
+  final paths = results.rest.isEmpty ? ['.'] : results.rest;
 
   final typeCheck = results.flag('type-check');
   final noLint = results.flag('no-lint');
@@ -288,11 +284,7 @@ Future<void> runCliWithPlugins(
   }
 
   final verbose = results.flag('verbose');
-  final paths = results.rest;
-
-  if (paths.isEmpty) {
-    paths.add('.');
-  }
+  final paths = results.rest.isEmpty ? ['.'] : results.rest;
 
   final typeCheck = results.flag('type-check');
   final noLint = results.flag('no-lint');
