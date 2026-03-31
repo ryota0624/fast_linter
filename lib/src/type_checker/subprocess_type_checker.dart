@@ -12,6 +12,7 @@ class SubprocessTypeChecker implements TypeChecker {
   final String _cacheDir;
   late final WrapperGenerator _wrapper;
 
+  /// Creates a type checker that caches results in [cacheDir].
   SubprocessTypeChecker({required String cacheDir}) : _cacheDir = cacheDir {
     _wrapper = WrapperGenerator(outputDir: cacheDir);
   }
