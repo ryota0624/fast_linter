@@ -3,8 +3,8 @@ import 'dart:io';
 import 'package:package_config/package_config.dart';
 import 'package:path/path.dart' as p;
 
-/// Suffixes of generated `part of` files that must not be imported directly.
-const _partFileSuffixes = ['.g.dart', '.freezed.dart', '.mustache.dart'];
+/// Matches a `part of` directive in Dart source.
+final _partOfPattern = RegExp(r'^\s*part\s+of\b', multiLine: true);
 
 /// Generates a wrapper Dart file that imports all target files.
 ///
@@ -27,9 +27,8 @@ class WrapperGenerator {
 
   /// Generates a wrapper file importing all [filePaths] and returns its path.
   ///
-  /// Files matching [_partFileSuffixes] (e.g. `.g.dart`, `.freezed.dart`)
-  /// are excluded because they contain `part of` directives and cannot be
-  /// imported directly.
+  /// Files containing a `part of` directive are excluded because they
+  /// cannot be imported directly.
   String generate(List<String> filePaths) {
     final buffer = StringBuffer();
     for (final path in filePaths) {
@@ -70,11 +69,25 @@ class WrapperGenerator {
     return absPath;
   }
 
+  /// Returns `true` if [path] is a `part of` file that cannot be imported
+  /// directly.
+  ///
+  /// Only files with a compound extension (e.g. `.g.dart`, `.freezed.dart`,
+  /// `.mustache.dart`) are candidates — these are typically code-generated
+  /// part files. For those candidates, the file content is parsed to confirm
+  /// a `part of` directive is present.
   static bool _isPartFile(String path) {
-    for (final suffix in _partFileSuffixes) {
-      if (path.endsWith(suffix)) return true;
+    // Check for compound extension: basename without .dart still has a dot.
+    final basename = p.basenameWithoutExtension(path);
+    if (!basename.contains('.')) return false;
+
+    // Compound extension found — read file to confirm `part of`.
+    try {
+      final content = File(path).readAsStringSync();
+      return _partOfPattern.hasMatch(content);
+    } catch (_) {
+      return false;
     }
-    return false;
   }
 
   /// Removes the last generated wrapper file.
