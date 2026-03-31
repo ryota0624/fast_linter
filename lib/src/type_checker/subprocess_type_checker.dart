@@ -1,5 +1,8 @@
 import 'dart:io';
 
+import 'package:package_config/package_config.dart';
+import 'package:path/path.dart' as p;
+
 import 'type_checker.dart';
 import 'type_diagnostic.dart';
 import 'wrapper_generator.dart';
@@ -10,21 +13,47 @@ import 'wrapper_generator.dart';
 /// delegates to [check] (full rebuild each time).
 class SubprocessTypeChecker implements TypeChecker {
   final String _cacheDir;
+  final String? _packagesPath;
   late final WrapperGenerator _wrapper;
 
   /// Creates a type checker that caches results in [cacheDir].
-  SubprocessTypeChecker({required String cacheDir}) : _cacheDir = cacheDir {
-    _wrapper = WrapperGenerator(outputDir: cacheDir);
+  ///
+  /// [packagesPath] is the resolved path to `package_config.json`.
+  /// When provided, it is passed as `--packages` to `dart compile kernel`
+  /// so that `package:` imports are resolved correctly (required for
+  /// Dart workspace layouts where `package_config.json` lives at the
+  /// workspace root, not in the individual package directory).
+  ///
+  /// [packageConfig] is used by [WrapperGenerator] to convert file paths
+  /// to `package:` URIs, preventing type duplication.
+  SubprocessTypeChecker({
+    required String cacheDir,
+    String? packagesPath,
+    PackageConfig? packageConfig,
+  })  : _cacheDir = cacheDir,
+        _packagesPath = packagesPath {
+    _wrapper = WrapperGenerator(
+      outputDir: cacheDir,
+      packageConfig: packageConfig,
+    );
   }
 
   @override
   Future<List<TypeDiagnostic>> check(List<String> filePaths) async {
     final wrapperPath = _wrapper.generate(filePaths);
-    final outputPath = '$_cacheDir/type_check.dill';
+    final outputPath = p.join(_cacheDir, 'type_check.dill');
+
+    final args = [
+      'compile',
+      'kernel',
+      '--output=$outputPath',
+      if (_packagesPath != null) '--packages=$_packagesPath',
+      wrapperPath,
+    ];
 
     final result = await Process.run(
       Platform.resolvedExecutable,
-      ['compile', 'kernel', '--output=$outputPath', wrapperPath],
+      args,
     );
 
     final diagnostics = <TypeDiagnostic>[];

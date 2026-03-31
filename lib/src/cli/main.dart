@@ -88,11 +88,7 @@ Future<void> runCli(
   }
 
   final verbose = results.flag('verbose');
-  final paths = results.rest;
-
-  if (paths.isEmpty) {
-    paths.add('.');
-  }
+  final paths = results.rest.isEmpty ? ['.'] : results.rest;
 
   final typeCheck = results.flag('type-check');
   final noLint = results.flag('no-lint');
@@ -185,7 +181,7 @@ Future<void> runCli(
 
   var hasTypeErrors = false;
   if (typeCheck) {
-    final checker = await createTypeChecker(projectDir: workDir.path);
+    final checker = await createTypeChecker(projectDir: Directory.current.path);
     try {
       final dartFiles = <String>[];
       for (final path in paths) {
@@ -288,11 +284,7 @@ Future<void> runCliWithPlugins(
   }
 
   final verbose = results.flag('verbose');
-  final paths = results.rest;
-
-  if (paths.isEmpty) {
-    paths.add('.');
-  }
+  final paths = results.rest.isEmpty ? ['.'] : results.rest;
 
   final typeCheck = results.flag('type-check');
   final noLint = results.flag('no-lint');
@@ -380,7 +372,7 @@ Future<void> runCliWithPlugins(
 
   var hasTypeErrors = false;
   if (typeCheck) {
-    final checker = await createTypeChecker(projectDir: workDir.path);
+    final checker = await createTypeChecker(projectDir: Directory.current.path);
     try {
       final dartFiles = <String>[];
       for (final path in paths) {
