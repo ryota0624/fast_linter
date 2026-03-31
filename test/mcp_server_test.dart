@@ -364,5 +364,130 @@ analyzer:
         expect(callResult.isError, isTrue);
       });
     });
+
+    group('type_check tool', () {
+      test('is registered', () async {
+        env = _TestEnv(rules: []);
+        await env.initialize();
+
+        final toolsResult = await env.serverConnection.listTools();
+        expect(
+          toolsResult.tools.map((t) => t.name),
+          contains('type_check'),
+        );
+      });
+
+      test('returns error for non-existent path', () async {
+        env = _TestEnv(rules: []);
+        await env.initialize();
+
+        final callResult = await env.serverConnection.callTool(
+          CallToolRequest(
+            name: 'type_check',
+            arguments: {'paths': ['/non/existent/path.dart']},
+          ),
+        );
+
+        expect(callResult.isError, isTrue);
+      });
+
+      test('returns empty diagnostics for valid code', () async {
+        final tempDir = Directory.systemTemp.createTempSync('mcp_tc_test_');
+        addTearDown(() => tempDir.deleteSync(recursive: true));
+
+        final file = File('${tempDir.path}/valid.dart');
+        file.writeAsStringSync('void main() {}\n');
+
+        env = _TestEnv(rules: []);
+        await env.initialize();
+
+        final callResult = await env.serverConnection.callTool(
+          CallToolRequest(
+            name: 'type_check',
+            arguments: {'paths': [file.path]},
+          ),
+        );
+
+        expect(callResult.isError, isNot(true));
+        final text = TextContent.fromMap(
+          callResult.content.first as Map<String, Object?>,
+        ).text;
+        final json = jsonDecode(text) as Map<String, dynamic>;
+
+        final diagnostics = json['diagnostics'] as List;
+        expect(diagnostics, isEmpty);
+
+        final summary = json['summary'] as Map<String, dynamic>;
+        expect(summary['files_checked'], 1);
+        expect(summary['total_diagnostics'], 0);
+      }, timeout: Timeout(Duration(seconds: 60)));
+
+      test('returns diagnostics for code with type errors', () async {
+        final tempDir = Directory.systemTemp.createTempSync('mcp_tc_test_');
+        addTearDown(() => tempDir.deleteSync(recursive: true));
+
+        final file = File('${tempDir.path}/bad.dart');
+        file.writeAsStringSync('int x = "hello";\n');
+
+        env = _TestEnv(rules: []);
+        await env.initialize();
+
+        final callResult = await env.serverConnection.callTool(
+          CallToolRequest(
+            name: 'type_check',
+            arguments: {'paths': [file.path]},
+          ),
+        );
+
+        expect(callResult.isError, isNot(true));
+        final text = TextContent.fromMap(
+          callResult.content.first as Map<String, Object?>,
+        ).text;
+        final json = jsonDecode(text) as Map<String, dynamic>;
+
+        final diagnostics = json['diagnostics'] as List;
+        expect(diagnostics, isNotEmpty);
+        final diag = diagnostics.first as Map<String, dynamic>;
+        expect(diag['severity'], 'error');
+        expect(diag['line'], isA<int>());
+        expect(diag['message'], isA<String>());
+
+        final summary = json['summary'] as Map<String, dynamic>;
+        expect(summary['total_diagnostics'], greaterThan(0));
+        final bySeverity = summary['by_severity'] as Map<String, dynamic>;
+        expect(bySeverity['error'], greaterThan(0));
+      }, timeout: Timeout(Duration(seconds: 60)));
+
+      test('type checks a directory recursively', () async {
+        final tempDir = Directory.systemTemp.createTempSync('mcp_tc_test_');
+        addTearDown(() => tempDir.deleteSync(recursive: true));
+
+        final file1 = File('${tempDir.path}/a.dart');
+        file1.writeAsStringSync('void main() {}\n');
+        final subDir = Directory('${tempDir.path}/sub');
+        subDir.createSync();
+        final file2 = File('${subDir.path}/b.dart');
+        file2.writeAsStringSync('void foo() {}\n');
+
+        env = _TestEnv(rules: []);
+        await env.initialize();
+
+        final callResult = await env.serverConnection.callTool(
+          CallToolRequest(
+            name: 'type_check',
+            arguments: {'paths': [tempDir.path]},
+          ),
+        );
+
+        expect(callResult.isError, isNot(true));
+        final text = TextContent.fromMap(
+          callResult.content.first as Map<String, Object?>,
+        ).text;
+        final json = jsonDecode(text) as Map<String, dynamic>;
+
+        final summary = json['summary'] as Map<String, dynamic>;
+        expect(summary['files_checked'], 2);
+      }, timeout: Timeout(Duration(seconds: 60)));
+    });
   });
 }

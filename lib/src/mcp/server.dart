@@ -9,6 +9,7 @@ import '../config/analysis_options_config.dart';
 import '../config/config.dart';
 import '../engine/diagnostic.dart';
 import '../engine/runner.dart';
+import '../type_checker/type_checker_factory.dart';
 
 /// MCP server for fast_linter.
 ///
@@ -78,6 +79,24 @@ final class FastLintMcpServer extends MCPServer with ToolsSupport {
         annotations: ToolAnnotations(readOnlyHint: true),
       ),
       _handleAnalyzeFiles,
+    );
+
+    registerTool(
+      Tool(
+        name: 'type_check',
+        description:
+            'Run type checking on Dart files or directories using dart compile kernel.',
+        inputSchema: ObjectSchema(
+          properties: {
+            'paths': ListSchema(
+              description: 'File or directory paths to type check.',
+              items: StringSchema(),
+            ),
+          },
+          required: ['paths'],
+        ),
+      ),
+      _handleTypeCheck,
     );
 
     registerTool(
@@ -246,6 +265,88 @@ final class FastLintMcpServer extends MCPServer with ToolsSupport {
     return CallToolResult(
       content: [TextContent(text: jsonEncode(result))],
     );
+  }
+
+  Future<CallToolResult> _handleTypeCheck(CallToolRequest request) async {
+    final args = request.arguments;
+    final paths = (args?['paths'] as List?)?.cast<String>() ?? [];
+
+    // Validate all paths.
+    for (final path in paths) {
+      final type = FileSystemEntity.typeSync(path);
+      if (type == FileSystemEntityType.notFound) {
+        return CallToolResult(
+          content: [TextContent(text: 'Path not found: $path')],
+          isError: true,
+        );
+      }
+    }
+
+    // Collect .dart files.
+    final dartFiles = <String>[];
+    for (final path in paths) {
+      final type = FileSystemEntity.typeSync(path);
+      if (type == FileSystemEntityType.directory) {
+        dartFiles.addAll(
+          Directory(path)
+              .listSync(recursive: true)
+              .whereType<File>()
+              .where((f) => f.path.endsWith('.dart'))
+              .map((f) => f.path),
+        );
+      } else if (path.endsWith('.dart')) {
+        dartFiles.add(path);
+      }
+    }
+
+    if (dartFiles.isEmpty) {
+      final result = {
+        'diagnostics': <Object>[],
+        'summary': {
+          'files_checked': 0,
+          'total_diagnostics': 0,
+          'by_severity': {'error': 0, 'warning': 0},
+        },
+      };
+      return CallToolResult(
+        content: [TextContent(text: jsonEncode(result))],
+      );
+    }
+
+    final checker = await createTypeChecker(
+      projectDir: Directory.current.path,
+    );
+    try {
+      final diagnostics = await checker.check(dartFiles);
+
+      final bySeverity = <String, int>{'error': 0, 'warning': 0};
+      for (final d in diagnostics) {
+        bySeverity[d.severity.name] = (bySeverity[d.severity.name] ?? 0) + 1;
+      }
+
+      final result = {
+        'diagnostics': diagnostics
+            .map((d) => {
+                  'file': d.filePath,
+                  'line': d.line,
+                  'column': d.column,
+                  'severity': d.severity.name,
+                  'message': d.message,
+                })
+            .toList(),
+        'summary': {
+          'files_checked': dartFiles.length,
+          'total_diagnostics': diagnostics.length,
+          'by_severity': bySeverity,
+        },
+      };
+
+      return CallToolResult(
+        content: [TextContent(text: jsonEncode(result))],
+      );
+    } finally {
+      await checker.dispose();
+    }
   }
 
   CallToolResult _handleListRules(CallToolRequest request) {
