@@ -185,7 +185,7 @@ Future<void> runCli(
 
   var hasTypeErrors = false;
   if (typeCheck) {
-    final checker = await createTypeChecker(projectDir: workDir.path);
+    final checker = await createTypeChecker(projectDir: Directory.current.path);
     try {
       final dartFiles = <String>[];
       for (final path in paths) {
@@ -380,7 +380,7 @@ Future<void> runCliWithPlugins(
 
   var hasTypeErrors = false;
   if (typeCheck) {
-    final checker = await createTypeChecker(projectDir: workDir.path);
+    final checker = await createTypeChecker(projectDir: Directory.current.path);
     try {
       final dartFiles = <String>[];
       for (final path in paths) {

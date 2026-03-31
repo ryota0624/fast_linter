@@ -11,19 +11,22 @@ import 'wrapper_generator.dart';
 /// Does not support true incremental compilation — [checkIncremental]
 /// delegates to [check] (full rebuild each time).
 class SubprocessTypeChecker implements TypeChecker {
-  final String _projectDir;
   final String _cacheDir;
+  final String? _packagesPath;
   late final WrapperGenerator _wrapper;
 
   /// Creates a type checker that caches results in [cacheDir].
   ///
-  /// [projectDir] is used to locate `.dart_tool/package_config.json`
-  /// so that `dart compile kernel` can resolve `package:` imports correctly.
+  /// [packagesPath] is the resolved path to `package_config.json`.
+  /// When provided, it is passed as `--packages` to `dart compile kernel`
+  /// so that `package:` imports are resolved correctly (required for
+  /// Dart workspace layouts where `package_config.json` lives at the
+  /// workspace root, not in the individual package directory).
   SubprocessTypeChecker({
-    required String projectDir,
     required String cacheDir,
-  })  : _projectDir = projectDir,
-        _cacheDir = cacheDir {
+    String? packagesPath,
+  })  : _cacheDir = cacheDir,
+        _packagesPath = packagesPath {
     _wrapper = WrapperGenerator(outputDir: cacheDir);
   }
 
@@ -31,18 +34,18 @@ class SubprocessTypeChecker implements TypeChecker {
   Future<List<TypeDiagnostic>> check(List<String> filePaths) async {
     final wrapperPath = _wrapper.generate(filePaths);
     final outputPath = p.join(_cacheDir, 'type_check.dill');
-    final packagesPath =
-        p.join(_projectDir, '.dart_tool', 'package_config.json');
+
+    final args = [
+      'compile',
+      'kernel',
+      '--output=$outputPath',
+      if (_packagesPath != null) '--packages=$_packagesPath',
+      wrapperPath,
+    ];
 
     final result = await Process.run(
       Platform.resolvedExecutable,
-      [
-        'compile',
-        'kernel',
-        '--output=$outputPath',
-        '--packages=$packagesPath',
-        wrapperPath,
-      ],
+      args,
     );
 
     final diagnostics = <TypeDiagnostic>[];
