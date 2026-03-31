@@ -10,6 +10,8 @@ import '../lsp/server.dart';
 import '../mcp/server.dart';
 import '../plugin/plugin.dart';
 import '../rules/registry.dart';
+import '../type_checker/type_checker_factory.dart';
+import '../type_checker/type_diagnostic.dart';
 
 /// CLI exit codes.
 class ExitCode {
@@ -57,7 +59,14 @@ Future<void> runCli(
     ..addFlag('lsp', negatable: false, help: 'Run as LSP server.')
     ..addFlag('mcp', negatable: false, help: 'Run as MCP server.')
     ..addFlag('verbose',
-        abbr: 'v', negatable: false, help: 'Show verbose output.');
+        abbr: 'v', negatable: false, help: 'Show verbose output.')
+    ..addFlag('type-check',
+        negatable: false, help: 'Enable type checking.')
+    ..addFlag('no-lint',
+        negatable: false, help: 'Skip lint analysis (use with --type-check).')
+    ..addOption('debounce-ms',
+        defaultsTo: '500',
+        help: 'Debounce interval for LSP type checking (ms).');
 
   final ArgResults results;
   try {
@@ -84,6 +93,14 @@ Future<void> runCli(
 
   if (paths.isEmpty) {
     paths.add('.');
+  }
+
+  final typeCheck = results.flag('type-check');
+  final noLint = results.flag('no-lint');
+
+  if (noLint && !typeCheck) {
+    stderr.writeln('Error: --no-lint requires --type-check.');
+    exit(ExitCode.error);
   }
 
   // Resolve config from analysis_options.yaml
@@ -129,41 +146,84 @@ Future<void> runCli(
     return;
   }
 
-  final runner = LintRunner(
-    rules: activeRules,
-    ruleFactory: ruleFactory,
-    config: config,
-  );
   final allDiagnostics = <LintDiagnostic>[];
 
-  for (final path in paths) {
-    final entity = FileSystemEntity.typeSync(path);
-    switch (entity) {
-      case FileSystemEntityType.file:
-        allDiagnostics.addAll(runner.runOnFile(File(path)));
-      case FileSystemEntityType.directory:
-        allDiagnostics.addAll(await runner.runOnDirectory(
-          Directory(path),
-          excludePatterns: config.excludePatterns,
-        ));
-      default:
-        stderr.writeln('Not found: $path');
-        exit(ExitCode.error);
+  if (!noLint) {
+    final runner = LintRunner(
+      rules: activeRules,
+      ruleFactory: ruleFactory,
+      config: config,
+    );
+
+    for (final path in paths) {
+      final entity = FileSystemEntity.typeSync(path);
+      switch (entity) {
+        case FileSystemEntityType.file:
+          allDiagnostics.addAll(runner.runOnFile(File(path)));
+        case FileSystemEntityType.directory:
+          allDiagnostics.addAll(await runner.runOnDirectory(
+            Directory(path),
+            excludePatterns: config.excludePatterns,
+          ));
+        default:
+          stderr.writeln('Not found: $path');
+          exit(ExitCode.error);
+      }
+    }
+
+    if (runner.skippedRules.isNotEmpty) {
+      final names = runner.skippedRules.toList()..sort();
+      stderr.writeln(
+        '[fast_linter] Skipped ${names.length} rule(s) requiring '
+        'type-aware analysis: ${names.join(', ')}',
+      );
+    }
+
+    _printDiagnostics(allDiagnostics);
+  }
+
+  var hasTypeErrors = false;
+  if (typeCheck) {
+    final checker = await createTypeChecker(projectDir: workDir.path);
+    try {
+      final dartFiles = <String>[];
+      for (final path in paths) {
+        final entity = FileSystemEntity.typeSync(path);
+        switch (entity) {
+          case FileSystemEntityType.file:
+            if (path.endsWith('.dart')) dartFiles.add(path);
+          case FileSystemEntityType.directory:
+            dartFiles.addAll(
+              Directory(path)
+                  .listSync(recursive: true)
+                  .whereType<File>()
+                  .where((f) => f.path.endsWith('.dart'))
+                  .map((f) => f.path),
+            );
+          default:
+            break;
+        }
+      }
+
+      if (dartFiles.isNotEmpty) {
+        final typeDiagnostics = await checker.check(dartFiles);
+        for (final d in typeDiagnostics) {
+          print('${d.filePath}:${d.line}:${d.column} - ${d.severity.name} - ${d.message}');
+        }
+        if (typeDiagnostics.isNotEmpty) {
+          stderr.writeln('\n${typeDiagnostics.length} type issue(s) found.');
+          hasTypeErrors = true;
+        }
+      }
+    } finally {
+      await checker.dispose();
     }
   }
 
-  if (runner.skippedRules.isNotEmpty) {
-    final names = runner.skippedRules.toList()..sort();
-    stderr.writeln(
-      '[fast_linter] Skipped ${names.length} rule(s) requiring '
-      'type-aware analysis: ${names.join(', ')}',
-    );
-  }
-
-  _printDiagnostics(allDiagnostics);
-
-  if (allDiagnostics.isNotEmpty) {
-    stderr.writeln('\n${allDiagnostics.length} issue(s) found.');
+  if (allDiagnostics.isNotEmpty || hasTypeErrors) {
+    if (allDiagnostics.isNotEmpty) {
+      stderr.writeln('\n${allDiagnostics.length} lint issue(s) found.');
+    }
     exit(ExitCode.lintFound);
   }
 
@@ -197,7 +257,14 @@ Future<void> runCliWithPlugins(
     ..addFlag('lsp', negatable: false, help: 'Run as LSP server.')
     ..addFlag('mcp', negatable: false, help: 'Run as MCP server.')
     ..addFlag('verbose',
-        abbr: 'v', negatable: false, help: 'Show verbose output.');
+        abbr: 'v', negatable: false, help: 'Show verbose output.')
+    ..addFlag('type-check',
+        negatable: false, help: 'Enable type checking.')
+    ..addFlag('no-lint',
+        negatable: false, help: 'Skip lint analysis (use with --type-check).')
+    ..addOption('debounce-ms',
+        defaultsTo: '500',
+        help: 'Debounce interval for LSP type checking (ms).');
 
   final ArgResults results;
   try {
@@ -224,6 +291,14 @@ Future<void> runCliWithPlugins(
 
   if (paths.isEmpty) {
     paths.add('.');
+  }
+
+  final typeCheck = results.flag('type-check');
+  final noLint = results.flag('no-lint');
+
+  if (noLint && !typeCheck) {
+    stderr.writeln('Error: --no-lint requires --type-check.');
+    exit(ExitCode.error);
   }
 
   // Resolve config from analysis_options.yaml
@@ -272,33 +347,76 @@ Future<void> runCliWithPlugins(
     return;
   }
 
-  final runner = LintRunner(
-    rules: activeRules,
-    ruleFactories: factories,
-    config: config,
-  );
   final allDiagnostics = <LintDiagnostic>[];
 
-  for (final path in paths) {
-    final entity = FileSystemEntity.typeSync(path);
-    switch (entity) {
-      case FileSystemEntityType.file:
-        allDiagnostics.addAll(runner.runOnFile(File(path)));
-      case FileSystemEntityType.directory:
-        allDiagnostics.addAll(await runner.runOnDirectory(
-          Directory(path),
-          excludePatterns: config.excludePatterns,
-        ));
-      default:
-        stderr.writeln('Not found: $path');
-        exit(ExitCode.error);
+  if (!noLint) {
+    final runner = LintRunner(
+      rules: activeRules,
+      ruleFactories: factories,
+      config: config,
+    );
+
+    for (final path in paths) {
+      final entity = FileSystemEntity.typeSync(path);
+      switch (entity) {
+        case FileSystemEntityType.file:
+          allDiagnostics.addAll(runner.runOnFile(File(path)));
+        case FileSystemEntityType.directory:
+          allDiagnostics.addAll(await runner.runOnDirectory(
+            Directory(path),
+            excludePatterns: config.excludePatterns,
+          ));
+        default:
+          stderr.writeln('Not found: $path');
+          exit(ExitCode.error);
+      }
+    }
+
+    _printDiagnostics(allDiagnostics);
+  }
+
+  var hasTypeErrors = false;
+  if (typeCheck) {
+    final checker = await createTypeChecker(projectDir: workDir.path);
+    try {
+      final dartFiles = <String>[];
+      for (final path in paths) {
+        final entity = FileSystemEntity.typeSync(path);
+        switch (entity) {
+          case FileSystemEntityType.file:
+            if (path.endsWith('.dart')) dartFiles.add(path);
+          case FileSystemEntityType.directory:
+            dartFiles.addAll(
+              Directory(path)
+                  .listSync(recursive: true)
+                  .whereType<File>()
+                  .where((f) => f.path.endsWith('.dart'))
+                  .map((f) => f.path),
+            );
+          default:
+            break;
+        }
+      }
+
+      if (dartFiles.isNotEmpty) {
+        final typeDiagnostics = await checker.check(dartFiles);
+        for (final d in typeDiagnostics) {
+          print('${d.filePath}:${d.line}:${d.column} - ${d.severity.name} - ${d.message}');
+        }
+        if (typeDiagnostics.isNotEmpty) {
+          stderr.writeln('\n${typeDiagnostics.length} type issue(s) found.');
+          hasTypeErrors = true;
+        }
+      }
+    } finally {
+      await checker.dispose();
     }
   }
 
-  _printDiagnostics(allDiagnostics);
-
-  if (allDiagnostics.isNotEmpty) {
-    stderr.writeln('\n${allDiagnostics.length} issue(s) found.');
+  if (allDiagnostics.isNotEmpty || hasTypeErrors) {
+    if (allDiagnostics.isNotEmpty) {
+      stderr.writeln('\n${allDiagnostics.length} lint issue(s) found.');
+    }
     exit(ExitCode.lintFound);
   }
 
