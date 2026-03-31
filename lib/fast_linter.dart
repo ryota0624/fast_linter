@@ -11,3 +11,6 @@ export 'src/mcp/server.dart';
 export 'src/plugin/plugin.dart';
 export 'src/rules/builtin/all.dart';
 export 'src/rules/registry.dart';
+export 'src/type_checker/type_checker.dart';
+export 'src/type_checker/type_checker_factory.dart';
+export 'src/type_checker/type_diagnostic.dart';
