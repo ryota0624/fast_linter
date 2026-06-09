@@ -5,6 +5,9 @@ description: >-
 version: 0.2.0
 repository: https://github.com/ryota0624/fast_linter
 
+executables:
+  fast_linter: fast_linter
+
 topics:
   - linter
   - static-analysis

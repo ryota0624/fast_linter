@@ -14,7 +14,15 @@ Existing `AbstractAnalysisRule`-based lint rules (those that don't need type inf
 
 ## Installation
 
-Add to your `pubspec.yaml`:
+Install the built-in executable globally if you want to use the default CLI/MCP server directly:
+
+```bash
+dart pub global activate fast_linter
+```
+
+This exposes the `fast_linter` command on your `PATH`.
+
+If you want to embed `fast_linter` in your own linter package, add it to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
@@ -26,6 +34,22 @@ dart pub get
 ```
 
 ## Usage
+
+### Using the built-in executable
+
+```bash
+# Lint the current directory
+fast_linter
+
+# Lint specific paths
+fast_linter lib/ test/
+
+# Start the MCP server
+fast_linter --mcp
+
+# Start the LSP server
+fast_linter --lsp
+```
 
 ### Creating a custom linter executable
 
@@ -45,6 +69,8 @@ void main(List<String> args) {
   );
 }
 ```
+
+If you want to distribute that wrapper through `dart pub global activate`, add an `executables:` entry in that package's `pubspec.yaml` pointing at its `bin/<name>.dart`.
 
 ### Multi-plugin support
 
@@ -94,13 +120,13 @@ Usage: fast_linter [options] [paths...]
 
 ```bash
 # Lint + type check
-dart run bin/my_linter.dart --type-check lib/
+fast_linter --type-check lib/
 
 # Type check only (skip linting)
-dart run bin/my_linter.dart --type-check --no-lint lib/
+fast_linter --type-check --no-lint lib/
 
 # Multiple paths
-dart run bin/my_linter.dart --type-check lib/ test/
+fast_linter --type-check lib/ test/
 ```
 
 Benchmark on a ~3000-file project:
@@ -119,7 +145,7 @@ Run with `--lsp` to start a JSON-RPC 2.0 LSP server over stdio. It publishes dia
 Type checking can be enabled in LSP mode with debounce control:
 
 ```bash
-dart run bin/my_linter.dart --lsp --type-check --debounce-ms 300
+fast_linter --lsp --type-check --debounce-ms 300
 ```
 
 Lint diagnostics are published immediately. Type check diagnostics are debounced (default 500ms) and merged into the same `publishDiagnostics` notification.
@@ -129,7 +155,7 @@ Lint diagnostics are published immediately. Type check diagnostics are debounced
 Run with `--mcp` to start a [Model Context Protocol](https://modelcontextprotocol.io/) server over stdio. This allows AI agents (Claude Code, etc.) and MCP-compatible IDEs to invoke lint analysis programmatically.
 
 ```bash
-dart run bin/my_linter.dart --mcp
+fast_linter --mcp
 ```
 
 #### Provided tools
@@ -148,14 +174,14 @@ Add the following to your Claude Code MCP settings (`~/.claude/claude_desktop_co
 {
   "mcpServers": {
     "fast_linter": {
-      "command": "dart",
-      "args": ["run", "/path/to/your/bin/my_linter.dart", "--mcp"]
+      "command": "fast_linter",
+      "args": ["--mcp"]
     }
   }
 }
 ```
 
-Replace `/path/to/your/bin/my_linter.dart` with the path to your custom linter executable.
+For a custom wrapper executable, replace `command` and `args` with that package's globally activated command.
 
 #### Example: analyze_files
 

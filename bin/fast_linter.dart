@@ -13,8 +13,8 @@ import 'package:fast_linter/fast_linter.dart';
 ///   runCli(args, rules: [MyRule1(), MyRule2()]);
 /// }
 /// ```
-void main(List<String> args) {
-  runCli(
+Future<void> main(List<String> args) async {
+  await runCli(
     args,
     rules: createBuiltinRules(),
     ruleFactory: createBuiltinRules,
