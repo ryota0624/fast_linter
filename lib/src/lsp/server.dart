@@ -7,8 +7,8 @@ import 'package:analyzer/analysis_rule/analysis_rule.dart';
 import '../config/config.dart';
 import '../engine/runner.dart';
 import '../type_checker/type_checker.dart';
-import '../type_checker/type_diagnostic.dart';
 import '../type_checker/type_checker_factory.dart';
+import '../type_checker/type_diagnostic.dart';
 import '../version.dart';
 
 /// A minimal LSP server for fast_linter.
