@@ -62,4 +62,14 @@ void main() {
       expect(result.exitCode, 0);
     });
   });
+
+  test('--version prints package version', () async {
+    final result = await Process.run(
+      Platform.resolvedExecutable,
+      ['run', 'bin/fast_linter.dart', '--version'],
+    );
+
+    expect(result.exitCode, 0);
+    expect(result.stdout, contains('fast_linter 0.2.0'));
+  });
 }

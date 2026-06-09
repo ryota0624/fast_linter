@@ -10,6 +10,7 @@ import '../config/config.dart';
 import '../engine/diagnostic.dart';
 import '../engine/runner.dart';
 import '../type_checker/type_checker_factory.dart';
+import '../version.dart';
 
 /// MCP server for fast_linter.
 ///
@@ -37,7 +38,7 @@ final class FastLintMcpServer extends MCPServer with ToolsSupport {
         super.fromStreamChannel(
           implementation: Implementation(
             name: 'fast_linter',
-            version: '0.0.1',
+            version: fastLinterVersion,
           ),
           instructions:
               'A fast AST-only Dart linter. Use list_rules to see available lint rules.',

@@ -11,6 +11,7 @@ import '../mcp/server.dart';
 import '../plugin/plugin.dart';
 import '../rules/registry.dart';
 import '../type_checker/type_checker_factory.dart';
+import '../version.dart';
 
 /// CLI exit codes.
 class ExitCode {
@@ -83,7 +84,7 @@ Future<void> runCli(
   }
 
   if (results.flag('version')) {
-    print('fast_linter 0.0.1');
+    print('fast_linter $fastLinterVersion');
     return;
   }
 
@@ -279,7 +280,7 @@ Future<void> runCliWithPlugins(
   }
 
   if (results.flag('version')) {
-    print('fast_linter 0.0.1');
+    print('fast_linter $fastLinterVersion');
     return;
   }
 
